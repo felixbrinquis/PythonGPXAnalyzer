@@ -39,6 +39,11 @@ LecturaIndividual = 'S'
 fichero = '10X(200+300) R45R90.gpx'
 
 
+# Comprobacion de la existencia de la estructura de directorios definida
+os.chdir(os.path.join(DirectorioBase))
+from source.common.funciones import CreacionDirectoriosProyecto
+CreacionDirectoriosProyecto(DirectorioBase)
+
 # Selecion de lectura masiva o individual de ficheros
 if LecturaIndividual.upper() == 'S':
     if os.path.exists(os.path.join(DirectorioBase, Actividades, fichero)):
