@@ -1070,3 +1070,15 @@ def GeneracionCodigoJS(dfAnalisisVariables, VariablePrincipal, LineasAuxiliares)
     ListadoBotones = [B for B in ListadoVariables.values()]
 
     return ListadoBotones, RelacionLineas, CodigoJS
+
+
+
+def CreacionDirectoriosProyecto(Root):
+    """
+        Funcion que recibe el directorio raiz del proyecto y crea la estructura de carpetas 
+        necesaria para funcionar si no existiera.
+    """
+    os.makedirs(os.path.join(Root, 'input'), exist_ok=True)
+    os.makedirs(os.path.join(Root, 'input\processed'), exist_ok=True)
+    os.makedirs(os.path.join(Root, 'library'), exist_ok=True)
+    os.makedirs(os.path.join(Root, 'output'), exist_ok=True)
