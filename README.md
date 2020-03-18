@@ -20,7 +20,7 @@ This project was created as a set of Python scripts with the purpose of analyze 
 # How to launch the process:
 1. The program that works as a master script is \source\main\LecturaDirectorio.py
 2. To set up the environment is necessary to provide the following variables:
-	2.1 DirectorioBase: base directory, where the project is located in the user's computer.
-	2.2 fichero: input file, located in 'input' folder and with .gpx extension.
-	2.3 LecturaIndividual: modifying it to 'N' all files in input folder can be read, but currently due to problems with Bokeh library it fails as second file is processed
+   A) DirectorioBase: base directory, where the project is located in the user's computer.
+   B) fichero: input file, located in 'input' folder and with .gpx extension.
+   C) LecturaIndividual: modifying it to 'N' all files in input folder can be read, but currently due to problems with Bokeh library it fails as second file is processed
 3. If finished sucesfully, results will be placed in 'output' folder with same name as input file.
