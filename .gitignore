@@ -1,4 +1,4 @@
-\input\
-\library\
-\output\
-**\__pycache__\
+*.gpx
+*.html
+*.pyc
+*.csv
