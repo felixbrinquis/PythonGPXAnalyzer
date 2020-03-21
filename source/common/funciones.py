@@ -1082,3 +1082,145 @@ def CreacionDirectoriosProyecto(Root):
     os.makedirs(os.path.join(Root, 'input\processed'), exist_ok=True)
     os.makedirs(os.path.join(Root, 'library'), exist_ok=True)
     os.makedirs(os.path.join(Root, 'output'), exist_ok=True)
+
+
+def CalculoOffsetAltitud(DataFrame):
+    """
+        Funcion que recibe un dataframe con la informacion de altitud y desniveles
+        calculada y devuelve los offset optimos superior e inferior para representar
+        la altidud de una manera mas acorde a la realidad.
+    """
+    # Calculo de desniveles finales
+    DesnivelPositivo = DataFrame['DesnivelPositivoAcumulado'].max()
+    DesnivelNegativo = DataFrame['DesnivelNegativoAcumulado'].max()
+    DesnivelAcumulado = DesnivelPositivo + DesnivelNegativo
+    DesnivelPorKilometro = (DesnivelAcumulado/DataFrame['DistanciaAcumulada'].max())*1000
+        
+    # Factor de achatamiento de la altitud
+    if DesnivelPorKilometro > 40:
+        OffsetSuperiorAltitud = 0.1
+        OffsetInferiorAltitud = 0.03
+    else:
+        OffsetSuperiorAltitud = 2.5
+        OffsetInferiorAltitud = 0.5
+        
+    return OffsetSuperiorAltitud, OffsetInferiorAltitud
+
+
+def LimiteEjeY(DataFrame, Metrica, TipoLimite):
+    """
+        Funcion que recibe como parametros un DataFrame la metrica a visualizar y el
+        tipo de limite deseado y devuelve el valor adecuado del eje Y para su visualizacion.
+        Valores de Metrica validos:
+            - FrecuenciaCardiaca
+            - Velocidad
+            - Altitud
+            - Cadencia
+            - Temperatura
+            - DesnivelPositivoAcumulado
+            - DesnivelNegativoAcumulado
+            - Pendiente
+            - LongitudZancada
+        Valores de TipoLimite validos:
+            - Inferior
+            - Superior
+            
+        Esta funcion permite realizar cambios en la distancia entre los limites de los graficos
+        de Bokeh y los datos a visualizar modificando unicamente 
+    """
+
+    # Frecuencia cardiaca
+    if Metrica == 'FrecuenciaCardiaca' and 'FrecuenciaCardiacaCalculada' in DataFrame.columns:
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = min(DataFrame['FrecuenciaCardiacaCalculada'].min(), 85)
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = max(DataFrame['FrecuenciaCardiacaCalculada'].max(), 180)
+        else:
+            LimiteEjeY = np.nan
+    
+    # Ritmo
+    if Metrica == 'Velocidad' and 'VelocidadCalculada' in DataFrame.columns:
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = DataFrame['VelocidadCalculada'].min()-DataFrame['VelocidadCalculada'].min()*0.1
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = DataFrame['VelocidadCalculada'].max()+DataFrame['VelocidadCalculada'].max()*0.2
+        else:
+            LimiteEjeY = np.nan
+    
+    # Altitud
+    if Metrica == 'Altitud' and 'AltitudCalculada' in DataFrame.columns:
+        OffsetSuperiorAltitud, OffsetInferiorAltitud = CalculoOffsetAltitud(DataFrame)
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = DataFrame['AltitudCalculada'].min()-(DataFrame['AltitudCalculada'].max()-DataFrame['AltitudCalculada'].min())*OffsetInferiorAltitud
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = DataFrame['AltitudCalculada'].max()+(DataFrame['AltitudCalculada'].max()-DataFrame['AltitudCalculada'].min())*OffsetSuperiorAltitud
+        else:
+            LimiteEjeY = np.nan
+    
+    # Cadencia
+    if Metrica == 'Cadencia' and 'CadenciaCalculada' in DataFrame.columns:
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = DataFrame['CadenciaCalculada'].min()-(DataFrame['CadenciaCalculada'].max()-DataFrame['CadenciaCalculada'].min())*0.03
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = DataFrame['CadenciaCalculada'].max()+(DataFrame['CadenciaCalculada'].max()-DataFrame['CadenciaCalculada'].min())*0.1
+        else:
+            LimiteEjeY = np.nan
+    
+    # Temperatura
+    if Metrica == 'Temperatura' and 'TemperaturaAmbiente' in DataFrame.columns:
+        # Calculo de un margen sin datos por tramos
+        Rango = DataFrame['TemperaturaAmbiente'].max()-DataFrame['TemperaturaAmbiente'].min()
+        if Rango < 1:
+            Margen = 2
+        elif Rango >= 1 and Rango < 10:
+            Margen = (1/Rango)*2
+        else:
+            Margen = 0.2
+        
+        if TipoLimite == 'Inferior':
+            if DataFrame['TemperaturaAmbiente'].min() > 25:
+                LimiteEjeY = DataFrame['TemperaturaAmbiente'].min()-Margen*2
+            else:
+                LimiteEjeY = min(DataFrame['TemperaturaAmbiente'].min()-Margen, 0)
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = max(DataFrame['TemperaturaAmbiente'].max()+Margen, 0)
+        else:
+            LimiteEjeY = np.nan
+            
+    # Desnivel positivo
+    if Metrica == 'DesnivelPositivoAcumulado' and 'DesnivelPositivoAcumulado' in DataFrame.columns:
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = 0
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = DataFrame['DesnivelPositivoAcumulado'].max()+DataFrame['DesnivelPositivoAcumulado'].max()*0.05
+        else:
+            LimiteEjeY = np.nan
+    
+    # Desnivel negativo | Habilitar cuando se incluya esta grafica en las visualizaciones de Bokeh
+    #if Metrica == 'DesnivelNegativoAcumulado' and 'DesnivelNegativoAcumulado' in DataFrame.columns:
+    #    if TipoLimite == 'Inferior':
+    #        LimiteEjeY = 0
+    #    elif TipoLimite == 'Superior':
+    #        LimiteEjeY = DataFrame['DesnivelNegativoAcumulado'].max()+DataFrame['DesnivelNegativoAcumulado'].max()*0.05
+    #    else:
+    #        LimiteEjeY = np.nan
+    
+    # Pendiente
+    if Metrica == 'Pendiente' and 'Pendiente' in DataFrame.columns:
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = DataFrame['Pendiente'].min()-(DataFrame['Pendiente'].max()-DataFrame['Pendiente'].min())*0.05
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = DataFrame['Pendiente'].max()+(DataFrame['Pendiente'].max()-DataFrame['Pendiente'].min())*0.05
+        else:
+            LimiteEjeY = np.nan
+    
+    # Longitud de zancada
+    if Metrica == 'LongitudZancada' and 'LongitudZancada' in DataFrame.columns:
+        if TipoLimite == 'Inferior':
+            LimiteEjeY = DataFrame['LongitudZancada'].min()-(DataFrame['LongitudZancada'].max()-DataFrame['LongitudZancada'].min())*0.03
+        elif TipoLimite == 'Superior':
+            LimiteEjeY = DataFrame['LongitudZancada'].max()+(DataFrame['LongitudZancada'].max()-DataFrame['LongitudZancada'].min())*0.1
+        else:
+            LimiteEjeY = np.nan
+        
+    return LimiteEjeY

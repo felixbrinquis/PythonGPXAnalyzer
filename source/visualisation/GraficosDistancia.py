@@ -22,7 +22,7 @@ from bokeh.transform import transform
 import numpy as np
 import pandas as pd
 
-from source.common.funciones import ConversorCoordenadasMercator, Reescalado, CalculosVectoresAgregados, FormateoEjes, DeteccionVariables, GeneracionCodigoJS
+from source.common.funciones import ConversorCoordenadasMercator, Reescalado, CalculosVectoresAgregados, FormateoEjes, DeteccionVariables, GeneracionCodigoJS, LimiteEjeY
 from source.common.PaletasColores import paleta_rojo, paleta_verde, paleta_azul, paleta_negro, paleta_cadencia, paleta_zancada
 
 
@@ -42,7 +42,7 @@ def TabGraficosDistancia(df):
         AVG_LongitudZancada, MAX_LongitudZancada, MIN_LongitudZancada, \
         AVG_Pendiente, MAX_Pendiente , MIN_Pendiente = CalculosVectoresAgregados(df)
         
-        # Calculo de desniveles finales
+    # Calculo de desniveles finales
     DesnivelPositivo = df['DesnivelPositivoAcumulado'].max()
     DesnivelNegativo = df['DesnivelNegativoAcumulado'].max()
     DesnivelAcumulado = DesnivelPositivo + DesnivelNegativo
@@ -57,12 +57,12 @@ def TabGraficosDistancia(df):
         OffsetInferiorAltitud = 0.5
     
     # Seleccion de un subconjunto de datos para visualizar
-    dfBokeh = df[['TiempoTotal', 'TiempoActividad', 'DistanciaAcumulada', 'Bloque', 'Latitud', 'Longitud', 'Altitud', 'AltitudCalculada', 'Velocidad_i', 'VelocidadCalculada', 'Ritmo', 'FrecuenciaCardiaca', 'FrecuenciaCardiacaCalculada', 'Cadencia', 'CadenciaCalculada', 'TemperaturaAmbiente', 'LongitudZancada', 'DesnivelPositivoAcumulado', 'Pendiente']].copy()
+    dfBokeh = df[['TiempoTotal', 'TiempoActividad', 'DistanciaAcumulada', 'Bloque', 'Latitud', 'Longitud', 'Altitud', 'AltitudCalculada', 'Velocidad_i', 'VelocidadCalculada', 'Ritmo', 'FrecuenciaCardiaca', 'FrecuenciaCardiacaCalculada', 'Cadencia', 'CadenciaCalculada', 'TemperaturaAmbiente', 'LongitudZancada', 'DesnivelPositivoAcumulado', 'DesnivelNegativoAcumulado', 'Pendiente']].copy()
     # Inclusion del ritmo instantaneo en formato texto
     dfBokeh['Ritmo_STR'] = dfBokeh.Ritmo.dt.round('1s').dt.components['minutes'].astype(str).apply(lambda x: x.zfill(2))+':'+dfBokeh.Ritmo.dt.round('1s').dt.components['seconds'].astype(str).apply(lambda x: x.zfill(2))
         
     # Reducion de la frecuencia de muestreo
-    dfBokehAgregables = dfBokeh.groupby('Bloque').resample('10S').agg({'TiempoTotal': np.max, 'TiempoActividad': np.max, 'DistanciaAcumulada': np.max, 'AltitudCalculada': np.max, 'VelocidadCalculada': np.mean, 'FrecuenciaCardiacaCalculada': np.mean, 'CadenciaCalculada': np.mean, 'TemperaturaAmbiente': np.mean, 'LongitudZancada': np.mean, 'DesnivelPositivoAcumulado': np.max, 'Pendiente': np.mean})
+    dfBokehAgregables = dfBokeh.groupby('Bloque').resample('10S').agg({'TiempoTotal': np.max, 'TiempoActividad': np.max, 'DistanciaAcumulada': np.max, 'AltitudCalculada': np.max, 'VelocidadCalculada': np.mean, 'FrecuenciaCardiacaCalculada': np.mean, 'CadenciaCalculada': np.mean, 'TemperaturaAmbiente': np.mean, 'LongitudZancada': np.mean, 'DesnivelPositivoAcumulado': np.max, 'DesnivelNegativoAcumulado': np.max, 'Pendiente': np.mean})
     dfBokehAgregables['CadenciaCalculada'] = dfBokehAgregables['CadenciaCalculada'].round()
         
     dfRitmo = dfBokeh[['Bloque', 'Ritmo']].copy()
@@ -73,70 +73,80 @@ def TabGraficosDistancia(df):
     dfBokehAGG = pd.merge(dfBokehAgregables, dfRitmoAGG[['Ritmo']], left_index=True, right_index=True)
     dfBokehAGG['Ritmo_STR'] = dfBokehAGG.Ritmo.dt.round('1s').dt.components['minutes'].astype(str).apply(lambda x: x.zfill(2))+':'+dfBokehAGG.Ritmo.dt.round('1s').dt.components['seconds'].astype(str).apply(lambda x: x.zfill(2))
         
-    #Creacion de variables reescaladas por variable principal
-    dfBokeh['VelocidadEscalada_FC'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
-    dfBokeh['AltitudEscalada_FC'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
-    dfBokehAGG['CadenciaEscalada_FC'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
-    dfBokeh['TemperaturaEscalada_FC'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
-    dfBokeh['PendienteEscalada_FC'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
-    dfBokeh['DesnivelPositivoEscalado_FC'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
-    dfBokehAGG['ZancadaEscalada_FC'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [min(MIN_FrecuenciaCardiaca[0]+5, 90), max(MAX_FrecuenciaCardiaca[0]-5, 175)])
+    """
+    Creacion de variables reescaladas por variable principal
+    """
+    # Frecuencia cardiaca
+    dfBokeh['VelocidadEscalada_FC'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
+    dfBokeh['AltitudEscalada_FC'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
+    dfBokehAGG['CadenciaEscalada_FC'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
+    dfBokeh['TemperaturaEscalada_FC'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
+    dfBokeh['PendienteEscalada_FC'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
+    dfBokeh['DesnivelPositivoEscalado_FC'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
+    dfBokehAGG['ZancadaEscalada_FC'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior')+5, LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')-5])
     
-    dfBokeh['FrecuenciaCardiacaEscalada_Vel'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [MIN_Velocidad[0], MAX_Velocidad[0]])
-    dfBokeh['AltitudEscalada_Vel'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [MIN_Velocidad[0], MAX_Velocidad[0]])
-    dfBokehAGG['CadenciaEscalada_Vel'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [MIN_Velocidad[0], MAX_Velocidad[0]])
-    dfBokeh['TemperaturaEscalada_Vel'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [MIN_Velocidad[0], MAX_Velocidad[0]])
-    dfBokeh['PendienteEscalada_Vel'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [MIN_Velocidad[0], MAX_Velocidad[0]])
-    dfBokeh['DesnivelPositivoEscalado_Vel'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [MIN_Velocidad[0], MAX_Velocidad[0]])
-    dfBokehAGG['ZancadaEscalada_Vel'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [MIN_Velocidad[0], MAX_Velocidad[0]])
-        
-    dfBokeh['FrecuenciaCardiacaEscalada_Alt'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
-    dfBokeh['VelocidadEscalada_Alt'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]],[MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
-    dfBokehAGG['CadenciaEscalada_Alt'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]],[MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
-    dfBokeh['TemperaturaEscalada_Alt'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
-    dfBokeh['PendienteEscalada_Alt'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
-    dfBokeh['DesnivelPositivoEscalado_Alt'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
-    dfBokehAGG['ZancadaEscalada_Alt'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)])
+    # Velocidad
+    dfBokeh['FrecuenciaCardiacaEscalada_Vel'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior')*1.05, LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
+    dfBokeh['AltitudEscalada_Vel'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior')*1.05, LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
+    dfBokehAGG['CadenciaEscalada_Vel'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior')*1.05, LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
+    dfBokeh['TemperaturaEscalada_Vel'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior')*1.05, LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
+    dfBokeh['PendienteEscalada_Vel'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior')*1.05, LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
+    dfBokeh['DesnivelPositivoEscalado_Vel'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior'), LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
+    dfBokehAGG['ZancadaEscalada_Vel'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior')*1.05, LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')*0.95])
     
-    dfBokeh['FrecuenciaCardiacaEscalada_Cad'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [MIN_Cadencia[0], MAX_Cadencia[0]])
-    dfBokeh['VelocidadEscalada_Cad'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [MIN_Cadencia[0], MAX_Cadencia[0]])
-    dfBokeh['AltitudEscalada_Cad'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [MIN_Cadencia[0], MAX_Cadencia[0]])
-    dfBokeh['TemperaturaEscalada_Cad'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [MIN_Cadencia[0], MAX_Cadencia[0]])
-    dfBokeh['PendienteEscalada_Cad'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [MIN_Cadencia[0], MAX_Cadencia[0]])
-    dfBokeh['DesnivelPositivoEscalado_Cad'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [MIN_Cadencia[0], MAX_Cadencia[0]])
-    dfBokehAGG['ZancadaEscalada_Cad'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [MIN_Cadencia[0], MAX_Cadencia[0]])
-     
-    dfBokeh['FrecuenciaCardiacaEscalada_Tem'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [MIN_Temperatura[0], MAX_Temperatura[0]])
-    dfBokeh['VelocidadEscalada_Tem'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [MIN_Temperatura[0], MAX_Temperatura[0]])
-    dfBokeh['AltitudEscalada_Tem'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [MIN_Temperatura[0], MAX_Temperatura[0]])
-    dfBokehAGG['CadenciaEscalada_Tem'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [MIN_Temperatura[0], MAX_Temperatura[0]])
-    dfBokeh['PendienteEscalada_Tem'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [MIN_Temperatura[0], MAX_Temperatura[0]])
-    dfBokeh['DesnivelPositivoEscalado_Tem'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [MIN_Temperatura[0], MAX_Temperatura[0]])
-    dfBokehAGG['ZancadaEscalada_Tem'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [MIN_Temperatura[0], MAX_Temperatura[0]])
-        
-    dfBokeh['FrecuenciaCardiacaEscalada_Pen'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [MIN_Pendiente[0], MAX_Pendiente[0]])
-    dfBokeh['VelocidadEscalada_Pen'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [MIN_Pendiente[0], MAX_Pendiente[0]])
-    dfBokeh['AltitudEscalada_Pen'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [MIN_Pendiente[0], MAX_Pendiente[0]])
-    dfBokehAGG['CadenciaEscalada_Pen'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [MIN_Pendiente[0], MAX_Pendiente[0]])
-    dfBokeh['TemperaturaEscalada_Pen'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [MIN_Pendiente[0], MAX_Pendiente[0]])
-    dfBokeh['DesnivelPositivoEscalado_Pen'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [MIN_Pendiente[0], MAX_Pendiente[0]])
-    dfBokehAGG['ZancadaEscalada_Pen'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [MIN_Pendiente[0], MAX_Pendiente[0]])
-        
-    dfBokeh['FrecuenciaCardiacaEscalada_Des'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [10, 0.95*DesnivelPositivo])
-    dfBokeh['VelocidadEscalada_Des'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [10, 0.95*DesnivelPositivo])
-    dfBokeh['AltitudEscalada_Des'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [10, 0.95*DesnivelPositivo])
-    dfBokehAGG['CadenciaEscalada_Des'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [10, 0.95*DesnivelPositivo])
-    dfBokeh['TemperaturaEscalada_Des'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [10, 0.95*DesnivelPositivo])
-    dfBokeh['PendienteEscalada_Des'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [10, 0.95*DesnivelPositivo])
-    dfBokehAGG['ZancadaEscalada_Des'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [10, 0.95*DesnivelPositivo])    
-        
-    dfBokeh['FrecuenciaCardiacaEscalada_Zan'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
-    dfBokeh['VelocidadEscalada_Zan'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
-    dfBokeh['AltitudEscalada_Zan'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
-    dfBokehAGG['CadenciaEscalada_Zan'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
-    dfBokeh['TemperaturaEscalada_Zan'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
-    dfBokeh['PendienteEscalada_Zan'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
-    dfBokeh['DesnivelPositivoEscalado_Zan'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]])
+    # Altitud
+    dfBokeh['FrecuenciaCardiacaEscalada_Alt'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokeh, 'Altitud', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    dfBokeh['VelocidadEscalada_Alt'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokeh, 'Altitud', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    dfBokehAGG['CadenciaEscalada_Alt'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]],[LimiteEjeY(dfBokeh, 'Altitud', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    dfBokeh['TemperaturaEscalada_Alt'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokeh, 'Altitud', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    dfBokeh['PendienteEscalada_Alt'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokeh, 'Altitud', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    dfBokeh['DesnivelPositivoEscalado_Alt'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokeh, 'Altitud', 'Inferior'), LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    dfBokehAGG['ZancadaEscalada_Alt'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokeh, 'Altitud', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Altitud', 'Superior')*0.99])
+    
+    # Cadencia
+    dfBokeh['FrecuenciaCardiacaEscalada_Cad'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    dfBokeh['VelocidadEscalada_Cad'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    dfBokeh['AltitudEscalada_Cad'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    dfBokeh['TemperaturaEscalada_Cad'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    dfBokeh['PendienteEscalada_Cad'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    dfBokeh['DesnivelPositivoEscalado_Cad'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior'), LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    dfBokehAGG['ZancadaEscalada_Cad'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')*0.95])
+    
+    # Temperatura
+    dfBokeh['FrecuenciaCardiacaEscalada_Tem'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    dfBokeh['VelocidadEscalada_Tem'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    dfBokeh['AltitudEscalada_Tem'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    dfBokehAGG['CadenciaEscalada_Tem'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    dfBokeh['PendienteEscalada_Tem'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    dfBokeh['DesnivelPositivoEscalado_Tem'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior'), LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    dfBokehAGG['ZancadaEscalada_Tem'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior')*1.01, LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')*0.99])
+    
+    # Pendiente
+    dfBokeh['FrecuenciaCardiacaEscalada_Pen'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior')*1.1, LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    dfBokeh['VelocidadEscalada_Pen'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior')*1.1, LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    dfBokeh['AltitudEscalada_Pen'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior')*1.1, LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    dfBokehAGG['CadenciaEscalada_Pen'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior')*1.1, LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    dfBokeh['TemperaturaEscalada_Pen'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior')*1.2, LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    dfBokeh['DesnivelPositivoEscalado_Pen'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior'), LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    dfBokehAGG['ZancadaEscalada_Pen'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior')*1.1, LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')*0.95])
+    
+    # Desnivel positivo acumulado
+    dfBokeh['FrecuenciaCardiacaEscalada_Des'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])
+    dfBokeh['VelocidadEscalada_Des'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])
+    dfBokeh['AltitudEscalada_Des'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])
+    dfBokehAGG['CadenciaEscalada_Des'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])
+    dfBokeh['TemperaturaEscalada_Des'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])
+    dfBokeh['PendienteEscalada_Des'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])
+    dfBokehAGG['ZancadaEscalada_Des'] = Reescalado(dfBokehAGG['LongitudZancada'], [MIN_LongitudZancada[0], MAX_LongitudZancada[0]], [LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior')+1, LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')-1])    
+    
+    # Longitud de zancada
+    dfBokeh['FrecuenciaCardiacaEscalada_Zan'] = Reescalado(dfBokeh['FrecuenciaCardiacaCalculada'], [MIN_FrecuenciaCardiaca[0], MAX_FrecuenciaCardiaca[0]], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
+    dfBokeh['VelocidadEscalada_Zan'] = Reescalado(dfBokeh['VelocidadCalculada'], [MIN_Velocidad[0], MAX_Velocidad[0]], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
+    dfBokeh['AltitudEscalada_Zan'] = Reescalado(dfBokeh['AltitudCalculada'], [MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetInferiorAltitud), MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*(0.5*OffsetSuperiorAltitud)], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
+    dfBokehAGG['CadenciaEscalada_Zan'] = Reescalado(dfBokehAGG['CadenciaCalculada'], [MIN_Cadencia[0], MAX_Cadencia[0]], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
+    dfBokeh['TemperaturaEscalada_Zan'] = Reescalado(dfBokeh['TemperaturaAmbiente'], [MIN_Temperatura[0], MAX_Temperatura[0]], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
+    dfBokeh['PendienteEscalada_Zan'] = Reescalado(dfBokeh['Pendiente'], [MIN_Pendiente[0], MAX_Pendiente[0]], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
+    dfBokeh['DesnivelPositivoEscalado_Zan'] = Reescalado(dfBokeh['DesnivelPositivoAcumulado'], [0, dfBokeh['DesnivelPositivoAcumulado'].max()], [LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior')*1.05, LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')*0.95])
      
         
     # Creacion de coordenadas Mercator en el DataFrame
@@ -166,7 +176,7 @@ def TabGraficosDistancia(df):
         FRECUENCIA CARDIACA | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_FrecuenciaCardiaca_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (min(MIN_FrecuenciaCardiaca[0], 85), max(MAX_FrecuenciaCardiaca[0], 180)), tools= '', toolbar_location= None)
+    PLT_FrecuenciaCardiaca_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Inferior'), LimiteEjeY(dfBokeh, 'FrecuenciaCardiaca', 'Superior')), tools= '', toolbar_location= None)
     
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'FrecuenciaCardiacaCalculada']].set_index('DistanciaAcumulada')
@@ -232,7 +242,7 @@ def TabGraficosDistancia(df):
         VELOCIDAD | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_VelocidadCalculada_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (MIN_Velocidad[0]-MIN_Velocidad[0]*0.1, MAX_Velocidad[0]+MAX_Velocidad[0]*0.2), tools= '', toolbar_location= None)
+    PLT_VelocidadCalculada_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokeh, 'Velocidad', 'Inferior'), LimiteEjeY(dfBokeh, 'Velocidad', 'Superior')), tools= '', toolbar_location= None)
     
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'VelocidadCalculada']].set_index('DistanciaAcumulada')
@@ -254,7 +264,7 @@ def TabGraficosDistancia(df):
     PLT_V_Pendiente_DST = PLT_VelocidadCalculada_DST.line('DistanciaAcumulada', 'PendienteEscalada_Vel', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_V_Desnivel_DST = PLT_VelocidadCalculada_DST.line('DistanciaAcumulada', 'DesnivelPositivoEscalado_Vel', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_V_Zancada_DST = PLT_VelocidadCalculada_DST.circle('DistanciaAcumulada', 'ZancadaEscalada_Vel', source= DatosBokehAGG, size= SizeCircle, line_color= transform('LongitudZancada', MapaColorZancada), color= transform('LongitudZancada', MapaColorZancada), fill_alpha= 0.7, visible= False)
-    	
+        
     # Atributos
     PLT_VelocidadCalculada_DST.title.text = 'RITMO INSTANTANEO'
     PLT_VelocidadCalculada_DST.sizing_mode = 'fixed'
@@ -289,10 +299,10 @@ def TabGraficosDistancia(df):
 
 
     """
-    	ALTITUD | DISTANCIA
+        ALTITUD | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_Altitud_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*OffsetInferiorAltitud, MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*OffsetSuperiorAltitud), tools= '', toolbar_location= None)
+    PLT_Altitud_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokeh, 'Altitud', 'Inferior'), LimiteEjeY(dfBokeh, 'Altitud', 'Superior')), tools= '', toolbar_location= None)
     
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'AltitudCalculada']].set_index('DistanciaAcumulada')
@@ -305,9 +315,9 @@ def TabGraficosDistancia(df):
     
     # Efectos visuales
     if DesnivelPorKilometro > 40:
-        PLT_Altitud_DST.add_tools(HoverTool(tooltips=[('Distancia', '@DistanciaAcumulada{0.0} km'),('Altitud', '@AltitudCalculada{int} m'),('Desnivel positivo', '@DesnivelPositivoAcumulado{int} m'),('Pendiente', '@Pendiente{0.00}%')], renderers= [PLT_ALT_Altitud_DST], mode= 'vline'))
+        PLT_Altitud_DST.add_tools(HoverTool(tooltips=[('Distancia', '@DistanciaAcumulada{0.0} m'),('Altitud', '@AltitudCalculada{int} m'),('Desnivel positivo', '@DesnivelPositivoAcumulado{int} m'),('Pendiente', '@Pendiente{0.00}%')], renderers= [PLT_ALT_Altitud_DST], mode= 'vline'))
     else:
-        PLT_Altitud_DST.add_tools(HoverTool(tooltips=[('Distancia', '@DistanciaAcumulada{0.0} km'),('Altitud', '@AltitudCalculada{int} m')], renderers= [PLT_ALT_Altitud_DST], mode= 'vline'))
+        PLT_Altitud_DST.add_tools(HoverTool(tooltips=[('Distancia', '@DistanciaAcumulada{0.0} m'),('Altitud', '@AltitudCalculada{int} m')], renderers= [PLT_ALT_Altitud_DST], mode= 'vline'))
     
     # Inclusion de lineas auxiliares
     PropiedadesLineas = dict(line_width= 2, line_alpha=0.7, line_cap= 'round', visible= False)
@@ -354,10 +364,10 @@ def TabGraficosDistancia(df):
     
 
     """
-    	CADENCIA | DISTANCIA
+        CADENCIA | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_Cadencia_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (MIN_Cadencia[0]-(MAX_Cadencia[0]-MIN_Cadencia[0])*0.03, MAX_Cadencia[0]+(MAX_Cadencia[0]-MIN_Cadencia[0])*0.1), tools= '', toolbar_location= None)
+    PLT_Cadencia_DST = figure(width= 1000, height= 400, x_range= (0, dfBokehAGG['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokehAGG, 'Cadencia', 'Inferior'), LimiteEjeY(dfBokehAGG, 'Cadencia', 'Superior')), tools= '', toolbar_location= None)
         
     # Inclusion de datos
     PLT_Cadencia_DST.circle('DistanciaAcumulada', 'CadenciaCalculada', source= DatosBokehAGG, size= SizeCircle, line_color= transform('CadenciaCalculada', MapaColorCadencia), color= transform('CadenciaCalculada', MapaColorCadencia), fill_alpha= 1)
@@ -413,7 +423,7 @@ def TabGraficosDistancia(df):
         TEMPERATURA AMBIENTE | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_Temperatura_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (min(MIN_Temperatura[0], 0), MAX_Temperatura[0]+(MAX_Temperatura[0]-MIN_Temperatura[0])*0.1), tools= '', toolbar_location= None)
+    PLT_Temperatura_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokeh, 'Temperatura', 'Inferior'), LimiteEjeY(dfBokeh, 'Temperatura', 'Superior')), tools= '', toolbar_location= None)
         
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'TemperaturaAmbiente']].set_index('DistanciaAcumulada')
@@ -423,6 +433,8 @@ def TabGraficosDistancia(df):
     PLT_Temperatura_DST.patch(x= np.hstack((dfBokehAreaBottom.index, dfBokehArea.index)), y= np.hstack((dfBokehAreaBottom['Area'], dfBokehArea['Area'])), color= paleta_azul[3], alpha= 1, line_color= None)
         
     PLT_Temperatura_DST.step('DistanciaAcumulada', 'TemperaturaAmbiente', source= DatosBokeh, color= paleta_verde[6], line_width= 2, line_cap= 'round')
+    PLT_TMP_Linea_DST = PLT_Temperatura_DST.line('DistanciaAcumulada', 'TemperaturaAmbiente', source= DatosBokeh, color= 'white', line_width= 0, line_alpha= 0)
+    PLT_Temperatura_DST.add_tools(HoverTool(tooltips=[('', '@TemperaturaAmbiente{int} ºC')], renderers= [PLT_TMP_Linea_DST], mode= 'vline'))
         
     # Inclusion de lineas auxiliares
     PropiedadesLineas = dict(line_width= 2, line_alpha=0.7, line_cap= 'round', visible= False)
@@ -470,10 +482,10 @@ def TabGraficosDistancia(df):
 
     
     """
-    	PENDIENTE | DISTANCIA
+        PENDIENTE | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_Pendiente_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (MIN_Pendiente[0]-(MAX_Pendiente[0]-MIN_Pendiente[0])*0.05, MAX_Pendiente[0]+(MAX_Pendiente[0]-MIN_Pendiente[0])*0.05), tools= '', toolbar_location= None)
+    PLT_Pendiente_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokeh, 'Pendiente', 'Inferior'), LimiteEjeY(dfBokeh, 'Pendiente', 'Superior')), tools= '', toolbar_location= None)
         
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'Pendiente']].set_index('DistanciaAcumulada')
@@ -482,8 +494,9 @@ def TabGraficosDistancia(df):
     dfBokehAreaBottom['Area'] = 0
     PLT_Pendiente_DST.patch(x= np.hstack((dfBokehAreaBottom.index, dfBokehArea.index)), y= np.hstack((dfBokehAreaBottom['Area'], dfBokehArea['Area'])), color= paleta_verde[5], alpha= 1, line_color= None)
         
-    PLT_Pendiente_DST.line('DistanciaAcumulada', 'Pendiente', source= DatosBokeh, color= paleta_verde[6], line_width= 2, line_cap= 'round')
-        
+    PLT_PEN_Pendiente_DST = PLT_Pendiente_DST.line('DistanciaAcumulada', 'Pendiente', source= DatosBokeh, color= paleta_verde[6], line_width= 2, line_cap= 'round')
+    PLT_Pendiente_DST.add_tools(HoverTool(tooltips=[('', '@Pendiente{0.00}%')], renderers= [PLT_PEN_Pendiente_DST], mode= 'vline'))
+    
     # Inclusion de lineas auxiliares
     PropiedadesLineas = dict(line_width= 2, line_alpha=0.7, line_cap= 'round', visible= False)
     PLT_PEN_FC_DST = PLT_Pendiente_DST.line('DistanciaAcumulada', 'FrecuenciaCardiacaEscalada_Pen', source= DatosBokeh, color= paleta_rojo[6], **PropiedadesLineas)
@@ -532,7 +545,7 @@ def TabGraficosDistancia(df):
         DESNIVEL POSITIVO ACUMULADO | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_DesnivelPositivo_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (0, DesnivelPositivo+DesnivelPositivo*0.05), tools= '', toolbar_location= None)
+    PLT_DesnivelPositivo_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Inferior'), LimiteEjeY(dfBokeh, 'DesnivelPositivoAcumulado', 'Superior')), tools= '', toolbar_location= None)
         
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'DesnivelPositivoAcumulado']].set_index('DistanciaAcumulada')
@@ -541,7 +554,8 @@ def TabGraficosDistancia(df):
     dfBokehAreaBottom['Area'] = 0
     PLT_DesnivelPositivo_DST.patch(x= np.hstack((dfBokehAreaBottom.index, dfBokehArea.index)), y= np.hstack((dfBokehAreaBottom['Area'], dfBokehArea['Area'])), color= paleta_verde[5], alpha= 1, line_color= None)
         
-    PLT_DesnivelPositivo_DST.line('DistanciaAcumulada', 'DesnivelPositivoAcumulado', source= DatosBokeh, color= paleta_verde[6], line_width= 2, line_cap= 'round')
+    PLT_DPA_DesnivelPositivo_DST = PLT_DesnivelPositivo_DST.line('DistanciaAcumulada', 'DesnivelPositivoAcumulado', source= DatosBokeh, color= paleta_verde[6], line_width= 2, line_cap= 'round')
+    PLT_DesnivelPositivo_DST.add_tools(HoverTool(tooltips=[('', '@DesnivelPositivoAcumulado{int} m')], renderers= [PLT_DPA_DesnivelPositivo_DST], mode= 'vline'))
     
     # Inclusion de lineas auxiliares
     PropiedadesLineas = dict(line_width= 2, line_alpha=0.7, line_cap= 'round', visible= False)
@@ -588,10 +602,10 @@ def TabGraficosDistancia(df):
 
 
     """
-    	LONGITUD DE ZANCADA | DISTANCIA
+        LONGITUD DE ZANCADA | DISTANCIA
     """
     # Creacion de un grafica
-    PLT_Zancada_DST = figure(width= 1000, height= 400, x_range= (0, dfBokeh['DistanciaAcumulada'].max()), y_range= (MIN_LongitudZancada[0]-(MAX_LongitudZancada[0]-MIN_LongitudZancada[0])*0.03, MAX_LongitudZancada[0]+(MAX_LongitudZancada[0]-MIN_LongitudZancada[0])*0.1), tools= '', toolbar_location= None)
+    PLT_Zancada_DST = figure(width= 1000, height= 400, x_range= (0, dfBokehAGG['DistanciaAcumulada'].max()), y_range= (LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Inferior'), LimiteEjeY(dfBokehAGG, 'LongitudZancada', 'Superior')), tools= '', toolbar_location= None)
     
     # Inclusion de datos
     PLT_Zancada_DST.circle('DistanciaAcumulada', 'LongitudZancada', source= DatosBokehAGG, size= SizeCircle, line_color= transform('LongitudZancada', MapaColorZancada), color= transform('LongitudZancada', MapaColorZancada), fill_alpha= 1)

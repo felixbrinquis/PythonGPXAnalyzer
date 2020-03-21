@@ -1,3 +1,4 @@
 \input\
 \library\
 \output\
+**\__pycache__\

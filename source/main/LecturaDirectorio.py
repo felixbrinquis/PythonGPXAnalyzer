@@ -36,7 +36,7 @@ Informes = 'output'
 BBDD = 'library'
 
 LecturaIndividual = 'S'
-fichero = '10X(200+300) R45R90.gpx'
+fichero = 'activity_3358982300.gpx'
 
 
 # Comprobacion de la existencia de la estructura de directorios definida
