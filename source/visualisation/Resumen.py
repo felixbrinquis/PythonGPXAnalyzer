@@ -188,7 +188,7 @@ def TabResumenMapa(NombreFichero, df):
     
     PLT_AltitudMapa.line('DistanciaAcumulada', 'AltitudCalculada', source= DatosBokeh, color= paleta_verde[6], line_width= 2, line_cap= 'round')
        
-    PLT_AltitudMapa.add_tools(HoverTool(tooltips=[('', '@DistanciaAcumulada{0.0} km')], mode= 'vline'))
+    PLT_AltitudMapa.add_tools(HoverTool(tooltips=[('', '@DistanciaAcumulada{0.0} m')], mode= 'vline'))
        
     # Atributos
     PLT_AltitudMapa.title.text = None
