@@ -18,7 +18,6 @@ import numpy as np
 import geopy.distance
 import datetime
 from math import ceil
-import os
 from scipy.signal import savgol_filter
 
 
@@ -105,7 +104,6 @@ def CalculosDataframe(df):
     TiempoTranscurrido =  df['TiempoTotal'].max()
     
     
-            
     """
         SUAVIZADO DE DATOS
         El suavizado de los datos a analizar lo realizaremos en primera instancia agrupado por bloques continuos debido a las discontinuidades
@@ -163,8 +161,6 @@ def CalculosDataframe(df):
         df['Altitud_SAVGOL_Total'] = df.loc[df['Bloque'].isin(BloquesMuestreablesAlt)][['Bloque', 'Altitud']].groupby('Bloque').transform(lambda x: savgol_filter(tuple(x), MuestrasAlt, 3))
         df['Altitud_SAVGOL_Total'] = df['Altitud'].transform(lambda x: savgol_filter(tuple(x), MuestrasAlt, 3))
         df['Altitud_SAVGOL'] = df.Altitud_SAVGOL_Bloque.combine_first(df.Altitud_SAVGOL_Total)
-        df = df.drop('Altitud_SAVGOL_Bloque', 1)
-        df = df.drop('Altitud_SAVGOL_Total', 1)
         
         # Velocidad SAVGOL
         df['Velocidad_SAVGOL_Bloque'] = np.nan
@@ -172,8 +168,6 @@ def CalculosDataframe(df):
         df['Velocidad_SAVGOL_Total'] = df.loc[df['Bloque'].isin(BloquesMuestreablesVel)][['Bloque', 'Velocidad_i']].groupby('Bloque').transform(lambda x: savgol_filter(tuple(x), MuestrasVel, 3))
         df['Velocidad_SAVGOL_Total'] = df['Velocidad_i'].transform(lambda x: savgol_filter(tuple(x), MuestrasVel, 3))
         df['Velocidad_SAVGOL'] = df.Velocidad_SAVGOL_Bloque.combine_first(df.Velocidad_SAVGOL_Total)
-        df = df.drop('Velocidad_SAVGOL_Bloque', 1)
-        df = df.drop('Velocidad_SAVGOL_Total', 1)
         
         # Frecuencia cardiaca SAVGOL
         df['FrecuenciaCardiaca_SAVGOL_Bloque'] = np.nan
@@ -181,17 +175,13 @@ def CalculosDataframe(df):
         df['FrecuenciaCardiaca_SAVGOL_Total'] = df.loc[df['Bloque'].isin(BloquesMuestreablesFC)][['Bloque','FrecuenciaCardiaca']].groupby('Bloque').transform(lambda x: savgol_filter(tuple(x), MuestrasFC, 3))
         df['FrecuenciaCardiaca_SAVGOL_Total'] = df['FrecuenciaCardiaca'].transform(lambda x: savgol_filter(tuple(x), MuestrasFC, 3))
         df['FrecuenciaCardiaca_SAVGOL'] = df.FrecuenciaCardiaca_SAVGOL_Bloque.combine_first(df.FrecuenciaCardiaca_SAVGOL_Total)
-        df = df.drop('FrecuenciaCardiaca_SAVGOL_Bloque', 1)
-        df = df.drop('FrecuenciaCardiaca_SAVGOL_Total', 1)
-        
+
         # Cadencia SAVGOL
         df['Cadencia_SAVGOL_Bloque'] = np.nan
         df['Cadencia_SAVGOL_Bloque'] = np.nan
         df['Cadencia_SAVGOL_Total'] = df.loc[df['Bloque'].isin(BloquesMuestreablesCad)][['Bloque', 'Cadencia']].groupby('Bloque').transform(lambda x: savgol_filter(tuple(x), MuestrasCad, 3))
         df['Cadencia_SAVGOL_Total'] = df['Cadencia'].transform(lambda x: savgol_filter(tuple(x), MuestrasCad, 3))
         df['Cadencia_SAVGOL'] = df.Cadencia_SAVGOL_Bloque.combine_first(df.Cadencia_SAVGOL_Total)
-        df = df.drop('Cadencia_SAVGOL_Bloque', 1)
-        df = df.drop('Cadencia_SAVGOL_Total', 1)
     
     
     # Calculo de medias moviles dependientes de la frecuencia de muestreo por bloque
@@ -245,36 +235,7 @@ def CalculosDataframe(df):
     df['VelocidadCalculada'] = df['VelocidadCalculada'].fillna(method='ffill').fillna(0)
     df['FrecuenciaCardiacaCalculada'] = df['FrecuenciaCardiacaCalculada'].fillna(method='ffill').fillna(0).astype(int)
     
-    
-    # Eliminacion de datos auxiliares
-    df = df.drop('dDistancia_5', 1)
-    df = df.drop('dDistancia_10', 1)
-    df = df.drop('dDistancia_15', 1)
-    df = df.drop('dDistancia_20', 1)
-    
-    df = df.drop('Altitud_SAVGOL', 1)
-    df = df.drop('Altitud_20', 1)
-    
-    df = df.drop('Velocidad_SAVGOL', 1)
-    df = df.drop('Velocidad_5', 1)
-    df = df.drop('Velocidad_10', 1)
-    df = df.drop('Velocidad_15', 1)
-    df = df.drop('Velocidad_20', 1)
-    
-    df = df.drop('FrecuenciaCardiaca_SAVGOL', 1)
-    df = df.drop('FrecuenciaCardiaca_5', 1)
-    df = df.drop('FrecuenciaCardiaca_10', 1)
-    df = df.drop('FrecuenciaCardiaca_15', 1)
-    df = df.drop('FrecuenciaCardiaca_20', 1)
-    
-    df = df.drop('Cadencia_SAVGOL', 1)
-    df = df.drop('Cadencia_5', 1)
-    df = df.drop('Cadencia_10', 1)
-    df = df.drop('Cadencia_15', 1)
-    df = df.drop('Cadencia_20', 1)
-    
-    
-    
+
     """
         RITMO [MIN/KM]
         Calculo del ritmo en min/km
@@ -424,11 +385,9 @@ def CalculosDataframe(df):
     df['Pendiente'] = df['PendienteCalculada'].transform(lambda x: x.rolling(VMM_20, VMM_20).mean().bfill())
     df['LongitudZancada'] = df['LongitudZancada'].fillna(method='bfill')
     df = df.drop('PendienteCalculada', 1)
-
-    # Calculo de desniveles finales
-    DesnivelPositivo = df['DesnivelPositivoAcumulado'].max()
-    DesnivelNegativo = df['DesnivelNegativoAcumulado'].max()
-    DesnivelAcumulado = DesnivelPositivo + DesnivelNegativo
-    DesnivelPorKilometro = (DesnivelAcumulado/DistanciaTotal)*1000
-
+    
+    
+    # Eliminacion de datos auxiliares utilizados anteriormente segun el patron definido
+    df = df.drop(df.filter(regex='\B_SAVGOL|_([0-9][0-9]?)$').columns, axis=1)
+    
     return df
