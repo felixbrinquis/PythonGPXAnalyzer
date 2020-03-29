@@ -45,8 +45,6 @@ def TabZonasCardiacas(df):
     """
         LAYOUT
     """
-    GridZonasCardiacas = layout(
-            [PLT_ZonasCardiacas],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+    GridZonasCardiacas = layout([PLT_ZonasCardiacas], sizing_mode='stretch_width')
     
     return GridZonasCardiacas

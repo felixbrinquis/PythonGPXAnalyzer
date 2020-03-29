@@ -14,10 +14,10 @@ la informacion en forma de mapa junto con otros valores medios o agregados total
 # Importacion de las funciones necesarias
 from bokeh.io import output_file, show, curdoc
 from bokeh.layouts import gridplot, layout, widgetbox, Spacer
-from bokeh.models import ColumnDataSource, Span, HoverTool, CategoricalColorMapper, Rect, LinearColorMapper, NumeralTickFormatter, BoxAnnotation, LabelSet, Label, NumberFormatter, StringFormatter, CheckboxButtonGroup, CustomJS
+from bokeh.models import ColumnDataSource, Span, HoverTool, CategoricalColorMapper, Rect, LinearColorMapper, NumeralTickFormatter, BoxAnnotation, LabelSet, Label, NumberFormatter, StringFormatter, CheckboxButtonGroup, CustomJS, Column, Row
 from bokeh.models.widgets import DataTable, DateFormatter, TableColumn, Panel, Tabs, PreText, RadioButtonGroup
 from bokeh.plotting import figure
-from bokeh.tile_providers import CARTODBPOSITRON
+from bokeh.tile_providers import get_provider, Vendors
 from bokeh.transform import linear_cmap, transform
 from bokeh.palettes import Spectral6
 import numpy as np
@@ -77,10 +77,18 @@ def TabResumenMapa(NombreFichero, df):
 
     """
         MAPA
+		
+		CARTODBPOSITRON
+		CARTODBPOSITRON_RETINA
+		STAMEN_TERRAIN
+		STAMEN_TERRAIN_RETINA
+		STAMEN_TONER
+		STAMEN_TONER_BACKGROUND
+		STAMEN_TONER_LABELS
     """
     # Creacion de un grafica
-    PLT_Mapa = figure(width= 800, height= 450, x_range=(dfBokeh.LongitudMercator.min()-100, dfBokeh.LongitudMercator.max()+100), y_range=(dfBokeh.LatitudMercator.min()-100, dfBokeh.LatitudMercator.max()+100), x_axis_type= 'mercator', y_axis_type= 'mercator', tools= 'wheel_zoom, reset, hover')
-    PLT_Mapa.add_tile(CARTODBPOSITRON)
+    PLT_Mapa = figure(width=900, height=430, x_range=(dfBokeh.LongitudMercator.min()-100, dfBokeh.LongitudMercator.max()+100), y_range=(dfBokeh.LatitudMercator.min()-100, dfBokeh.LatitudMercator.max()+100), x_axis_type= 'mercator', y_axis_type= 'mercator', tools= 'wheel_zoom, reset, hover')
+    PLT_Mapa.add_tile(get_provider('STAMEN_TERRAIN'))
     
     # Inclusion de datos
     PLT_MP_Linea = PLT_Mapa.line(x= 'LongitudMercator', y= 'LatitudMercator', source= DatosBokeh, line_color= paleta_rojo[7], line_width= 3, line_cap= 'round')
@@ -162,7 +170,7 @@ def TabResumenMapa(NombreFichero, df):
             TableColumn(field= 'Cadencia', title= 'Cadencia[ppm]', width= 80, default_sort= 'ascending', sortable= False, formatter= NumberFormatter(format= '0,0', language= 'es', rounding= 'round', font_style= 'normal', text_align= 'center', text_color= 'black')),
             TableColumn(field= 'DesnivelAcumulado', title= 'Desnivel', width= 80, default_sort= 'ascending', sortable= False, formatter= NumberFormatter(format= '0,0', language= 'es', rounding= 'round', font_style= 'normal', text_align= 'center', text_color= 'black'))
         ]
-    PLT_TablaKmResumen = DataTable(source= OrigenTramosKm, columns= TablaKmResumen, width= 360, height= 550, fit_columns= False, sortable= False, reorderable= False, selectable= True, editable= False, index_position= None, header_row= True, row_height= 25)
+    PLT_TablaKmResumen = DataTable(source= OrigenTramosKm, columns= TablaKmResumen, width=360, height=550, fit_columns= False, sortable= False, reorderable= False, selectable= True, editable= False, index_position= None, header_row= True, row_height= 25)
 
 
     """
@@ -177,7 +185,7 @@ def TabResumenMapa(NombreFichero, df):
         OffsetInferior = 0.5
     
     # Creacion de un grafica
-    PLT_AltitudMapa = figure(width= 800, height= 150, x_range= (0, df['DistanciaAcumulada'].max()), y_range= (MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*OffsetInferior, MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*OffsetSuperior), tools= '', toolbar_location= None)
+    PLT_AltitudMapa = figure(width=900, height=110, x_range= (0, df['DistanciaAcumulada'].max()), y_range= (MIN_Altitud[0]-(MAX_Altitud[0]-MIN_Altitud[0])*OffsetInferior, MAX_Altitud[0]+(MAX_Altitud[0]-MIN_Altitud[0])*OffsetSuperior), tools= '', toolbar_location= None)
     
     # Inclusion de datos
     dfBokehArea = dfBokeh.copy().reset_index()[['DistanciaAcumulada', 'AltitudCalculada']].set_index('DistanciaAcumulada')
@@ -355,6 +363,7 @@ def TabResumenMapa(NombreFichero, df):
     
     # Seleccion del formato a mostrar
     if DesnivelPorKilometro > 40: #Trail
+        AlturaResumen = 195
         PLT_Resumen_Datos = layout(
                 [[Resumen_Titulo],
                  [Resumen_Fecha],
@@ -362,14 +371,15 @@ def TabResumenMapa(NombreFichero, df):
                  [Resumen_DesnivelAcumulado, Resumen_FC, Resumen_Ritmo],
                  [Resumen_AltitudMax, Resumen_DesnivelPositivo, Resumen_PendienteMax],
                  [Resumen_AltitudMin, Resumen_DesnivelNegativo, Resumen_PendienteMin]],
-                 merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+                 sizing_mode='stretch_height', width=360, height=AlturaResumen)
     else: #Asfalto
+        AlturaResumen = 130
         PLT_Resumen_Datos = layout(
                 [[Resumen_Titulo],
                  [Resumen_Fecha],
                  [Resumen_Distancia, Resumen_Duracion, Resumen_Ritmo],
                  [Resumen_FC, Resumen_DesnivelPositivo, Resumen_Zancada]],
-                 merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+                 sizing_mode='stretch_height', width=360, height=AlturaResumen)
 
 
     """
@@ -394,26 +404,17 @@ def TabResumenMapa(NombreFichero, df):
     l8.visible = indexOf.call(checkbox.active,3)>=0;
     """
     
-    CodigoJSMapa = CustomJS(code=CodigoJS, args={})
-    
-    BotonesMapa = CheckboxButtonGroup(labels=["INICIO/FIN", "PUNTOS KILOMETRICOS", "CIMA/VALLE", 'PAUSAS'], active=[0, 1], callback=CodigoJSMapa, width= 500)
-    
-    CodigoJSMapa.args = dict(l0=PLT_Mapa_Inicio, l1=PLT_Mapa_Fin, l2=PLT_Mapa_PuntoKm, l3= PLT_Mapa_PuntoKm_TXT, l4=PLT_Mapa_Cima, l5=PLT_Mapa_Cima_TXT, l6=PLT_Mapa_Valle, l7=PLT_Mapa_Valle_TXT, l8=PLT_Mapa_Pausas, checkbox= BotonesMapa)
+    BotonesMapa = CheckboxButtonGroup(labels=["INICIO/FIN", "PUNTOS KILOMETRICOS", "CIMA/VALLE", 'PAUSAS'], active=[0, 1], width=300, height=30)
+    CodigoJSMapa = CustomJS(code=CodigoJS, args=dict(l0=PLT_Mapa_Inicio, l1=PLT_Mapa_Fin, l2=PLT_Mapa_PuntoKm, l3= PLT_Mapa_PuntoKm_TXT, l4=PLT_Mapa_Cima, l5=PLT_Mapa_Cima_TXT, l6=PLT_Mapa_Valle, l7=PLT_Mapa_Valle_TXT, l8=PLT_Mapa_Pausas, checkbox= BotonesMapa))
+    BotonesMapa.js_on_click(CodigoJSMapa)
 
 
     """
         LAYOUT
     """
-    GridResumenInicio = layout(
-            [PLT_Resumen_Datos, PLT_TablaKmResumen],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+    GridResumenInicio = layout([Column(PLT_Resumen_Datos, width=360, height=AlturaResumen), Column(PLT_TablaKmResumen, width=360, height=550)], sizing_mode='stretch_width', width=360, height=700)
+    GridMapaAltitud= layout([PLT_Mapa, Column(BotonesMapa, width=300, height=35), PLT_AltitudMapa], sizing_mode='stretch_width', width=900, height=800)
     
-    GridMapaAltitud= layout(
-            [PLT_Mapa, widgetbox(BotonesMapa, width= 500), PLT_AltitudMapa],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    TabMapa = gridplot(
-            [GridMapaAltitud, GridResumenInicio],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_location='left', toolbar_options=dict(logo=None))
+    TabMapa = gridplot([GridMapaAltitud, GridResumenInicio], ncols= 2, sizing_mode='stretch_width', plot_width=1000, plot_height=800, toolbar_location='left')
     
     return TabMapa

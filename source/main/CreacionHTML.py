@@ -45,7 +45,6 @@ def CreacionHTML(DirectorioBase, Informes, NombreFichero, df):
     DiccionarioTabs['tab5'] = Panel(child = TabParcialesKilometricos(df), title = 'PARCIALES KILOMETRCOS')
     DiccionarioTabs['tab6'] = Panel(child = TabParcialesPausas(df), title = 'ANALISIS POR PAUSAS')
     DiccionarioTabs['tab7'] = Panel(child = TabZonasCardiacas(df), title = 'ZONAS CARDIACAS')
-        
-    DiccionarioTabs['HTML'] = Tabs(tabs = [DiccionarioTabs['tab1'], DiccionarioTabs['tab2'], DiccionarioTabs['tab3'], DiccionarioTabs['tab4'], DiccionarioTabs['tab5'], DiccionarioTabs['tab6'], DiccionarioTabs['tab7']])
-        
+     
+    DiccionarioTabs['HTML'] = Tabs(tabs = [DiccionarioTabs['tab1'], DiccionarioTabs['tab2'], DiccionarioTabs['tab3'], DiccionarioTabs['tab4'], DiccionarioTabs['tab5'], DiccionarioTabs['tab6'], DiccionarioTabs['tab7']])     
     save(DiccionarioTabs['HTML'])

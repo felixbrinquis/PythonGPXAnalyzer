@@ -36,7 +36,7 @@ Informes = 'output'
 BBDD = 'library'
 
 LecturaIndividual = 'S'
-fichero = 'activity_3358982300.gpx'
+fichero = '10X(200+300) R45R90.gpx'
 
 
 # Comprobacion de la existencia de la estructura de directorios definida
@@ -85,3 +85,4 @@ for fichero in FicherosCarga:
     DataFrameActividadActual = AnalisisActividadActual(fichero, NombreActividad, TipoActividad, df)
     EscrituraBBDDActividades(DirectorioBase, BBDD, DataFrameActividadActual, DataFrameBBDDActividades)
     os.replace(os.path.join(DirectorioBase, Actividades, fichero), os.path.join(DirectorioBase, Actividades, 'processed', fichero))
+    

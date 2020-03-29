@@ -9,13 +9,13 @@ del mismo y lo convierte en un dataframe.
 """
 
 # Importacion de librerias
-from lxml import etree
-import dateutil.parser
+from lxml.etree import parse as lxml_parse
+from dateutil.parser import parse as dateutil_parse
 import timezonefinder, pytz
 import pandas as pd
 
 def LecturaGPX(ficheroGPX):
-    gpx = etree.parse(ficheroGPX)
+    gpx = lxml_parse(ficheroGPX)
     
     Name = gpx.xpath("//gpx:name", namespaces = {'gpx': "http://www.topografix.com/GPX/1/1"})[0].text
     Type = gpx.xpath("//gpx:type", namespaces = {'gpx': "http://www.topografix.com/GPX/1/1"})[0].text
@@ -38,7 +38,7 @@ def LecturaGPX(ficheroGPX):
         Altitud.append(float(alt.text))
     
     for time in gpx.xpath("//gpx:time", namespaces = {'gpx': "http://www.topografix.com/GPX/1/1"}):
-        HoraISO.append(dateutil.parser.parse(time.text).replace(tzinfo=None))
+        HoraISO.append(dateutil_parse(time.text).replace(tzinfo=None))
     
     for extensions in gpx.xpath("//gpx:extensions", namespaces = {'gpx': "http://www.topografix.com/GPX/1/1"}):
         for tpe in extensions:

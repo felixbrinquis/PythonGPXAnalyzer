@@ -13,7 +13,7 @@ distintas metricas usando como eje horizontal la distancia recorrida.
 """
 # Importacion de las funciones necesarias
 from bokeh.layouts import gridplot, layout, widgetbox, Spacer
-from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumeralTickFormatter, DatetimeTickFormatter, CustomJS
+from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumeralTickFormatter, DatetimeTickFormatter, CustomJS, Column
 from bokeh.models.widgets import CheckboxGroup
 from bokeh.models.tickers import SingleIntervalTicker
 from bokeh.plotting import figure
@@ -171,6 +171,19 @@ def TabGraficosDistancia(df):
     # Creacion de los ColumnDataSource de origen de Bokeh
     DatosBokeh = ColumnDataSource(dfBokeh) 
     DatosBokehAGG = ColumnDataSource(dfBokehAGG)
+    
+    # Definicion del codigo JavaScrip que habilita la visualizacion de metricas auxiliares
+    CodigoJS = """
+    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    
+    l0.visible = indexOf.call(checkbox.active,0)>=0;
+    l1.visible = indexOf.call(checkbox.active,1)>=0;
+    l2.visible = indexOf.call(checkbox.active,2)>=0;
+    l3.visible = indexOf.call(checkbox.active,3)>=0;
+    l4.visible = indexOf.call(checkbox.active,4)>=0;
+    l5.visible = indexOf.call(checkbox.active,5)>=0;
+    l6.visible = indexOf.call(checkbox.active,6)>=0;
+    """
    
     """
         FRECUENCIA CARDIACA | DISTANCIA
@@ -200,9 +213,6 @@ def TabGraficosDistancia(df):
     PLT_FC_Pendiente_DST = PLT_FrecuenciaCardiaca_DST.line('DistanciaAcumulada', 'PendienteEscalada_FC', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_FC_Desnivel_DST = PLT_FrecuenciaCardiaca_DST.line('DistanciaAcumulada', 'DesnivelPositivoEscalado_FC', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_FC_Zancada_DST = PLT_FrecuenciaCardiaca_DST.circle('DistanciaAcumulada', 'ZancadaEscalada_FC', source= DatosBokehAGG, size= SizeCircle, line_color= transform('LongitudZancada', MapaColorZancada), color= transform('LongitudZancada', MapaColorZancada), fill_alpha= 0.7, visible= False)
-    
-    DiccionarioLineasAuxiliares = {'FrecuenciaCardiaca':'XXX', 'Velocidad':PLT_FC_Ritmo_DST, 'Altitud':PLT_FC_Altitud_DST, 'Cadencia':PLT_FC_Cadencia_DST, \
-            'Temperatura':PLT_FC_Temperatura_DST, 'Pendiente':PLT_FC_Pendiente_DST, 'DesnivelPositivoAcumulado':PLT_FC_Desnivel_DST, 'LongitudZancada':PLT_FC_Zancada_DST}
 
     # Atributos
     PLT_FrecuenciaCardiaca_DST.title.text = 'FRECUENCIA CARDIACA'
@@ -217,26 +227,11 @@ def TabGraficosDistancia(df):
     PLT_FrecuenciaCardiaca_DST.xaxis.ticker = SingleIntervalTicker(interval= 1000)
     PLT_FrecuenciaCardiaca_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
 
-
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSFrecuenciaCardiaca = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaFC = CheckboxGroup(labels=['RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSFrecuenciaCardiaca, width= 100)
-    
-    CodigoJSFrecuenciaCardiaca.args = dict(l0=PLT_FC_Ritmo_DST, l1=PLT_FC_Altitud_DST, l2=PLT_FC_Cadencia_DST, l3=PLT_FC_Temperatura_DST, l4=PLT_FC_Pendiente_DST, l5=PLT_FC_Desnivel_DST, l6=PLT_FC_Zancada_DST, checkbox=BotonesGraficaFC)
- 
+    BotonesGraficaFC = CheckboxGroup(labels=['RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSFrecuenciaCardiaca = CustomJS(code=CodigoJS, args=dict(l0=PLT_FC_Ritmo_DST, l1=PLT_FC_Altitud_DST, l2=PLT_FC_Cadencia_DST, l3=PLT_FC_Temperatura_DST, l4=PLT_FC_Pendiente_DST, l5=PLT_FC_Desnivel_DST, l6=PLT_FC_Zancada_DST, checkbox=BotonesGraficaFC))
+    BotonesGraficaFC.js_on_click(CodigoJSFrecuenciaCardiaca)
+
    
     """
         VELOCIDAD | DISTANCIA
@@ -279,23 +274,9 @@ def TabGraficosDistancia(df):
     PLT_VelocidadCalculada_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSVelocidad = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaVelocidad = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSVelocidad, width= 100)
-    
-    CodigoJSVelocidad.args = dict(l0=PLT_V_FrecuenciaCardiaca_DST, l1=PLT_V_Altitud_DST, l2=PLT_V_Cadencia_DST, l3=PLT_V_Temperatura_DST, l4=PLT_V_Pendiente_DST, l5=PLT_V_Desnivel_DST, l6=PLT_V_Zancada_DST, checkbox=BotonesGraficaVelocidad)
+    BotonesGraficaVelocidad = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSVelocidad = CustomJS(code=CodigoJS, args=dict(l0=PLT_V_FrecuenciaCardiaca_DST, l1=PLT_V_Altitud_DST, l2=PLT_V_Cadencia_DST, l3=PLT_V_Temperatura_DST, l4=PLT_V_Pendiente_DST, l5=PLT_V_Desnivel_DST, l6=PLT_V_Zancada_DST, checkbox=BotonesGraficaVelocidad))
+    BotonesGraficaVelocidad.js_on_click(CodigoJSVelocidad)
 
 
     """
@@ -328,8 +309,7 @@ def TabGraficosDistancia(df):
     PLT_ALT_Pendiente_DST = PLT_Altitud_DST.line('DistanciaAcumulada', 'PendienteEscalada_Alt', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_ALT_Desnivel_DST = PLT_Altitud_DST.line('DistanciaAcumulada', 'DesnivelPositivoEscalado_Alt', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_ALT_Zancada_DST = PLT_Altitud_DST.circle('DistanciaAcumulada', 'ZancadaEscalada_Alt', source= DatosBokehAGG, size= SizeCircle, line_color= transform('LongitudZancada', MapaColorZancada), color= transform('LongitudZancada', MapaColorZancada), fill_alpha= 0.7, visible= False)
-    
-    
+       
     # Atributos
     PLT_Altitud_DST.title.text = 'ALTITUD'
     PLT_Altitud_DST.sizing_mode = 'fixed'
@@ -344,24 +324,10 @@ def TabGraficosDistancia(df):
     PLT_Altitud_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
        
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSAltitud = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaALT = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSAltitud, width= 100)
-    
-    CodigoJSAltitud.args = dict(l0=PLT_ALT_FC_DST, l1=PLT_ALT_Ritmo_DST, l2=PLT_ALT_Cadencia_DST, l3=PLT_ALT_Temperatura_DST, l4=PLT_ALT_Pendiente_DST, l5=PLT_ALT_Desnivel_DST, l6=PLT_ALT_Zancada_DST, checkbox=BotonesGraficaALT)
-    
+    BotonesGraficaALT = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSAltitud = CustomJS(code=CodigoJS, args=dict(l0=PLT_ALT_FC_DST, l1=PLT_ALT_Ritmo_DST, l2=PLT_ALT_Cadencia_DST, l3=PLT_ALT_Temperatura_DST, l4=PLT_ALT_Pendiente_DST, l5=PLT_ALT_Desnivel_DST, l6=PLT_ALT_Zancada_DST, checkbox=BotonesGraficaALT))
+    BotonesGraficaALT.js_on_click(CodigoJSAltitud)
+
 
     """
         CADENCIA | DISTANCIA
@@ -383,8 +349,7 @@ def TabGraficosDistancia(df):
     PLT_C_Pendiente_DST = PLT_Cadencia_DST.line('DistanciaAcumulada', 'PendienteEscalada_Cad', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_C_Desnivel_DST = PLT_Cadencia_DST.line('DistanciaAcumulada', 'DesnivelPositivoEscalado_Cad', source= DatosBokeh, color= paleta_verde[6], **PropiedadesLineas)
     PLT_C_Zancada_DST = PLT_Cadencia_DST.circle('DistanciaAcumulada', 'ZancadaEscalada_Cad', source= DatosBokehAGG, size= SizeCircle, line_color= transform('LongitudZancada', MapaColorZancada), color= transform('LongitudZancada', MapaColorZancada), fill_alpha= 0.7, visible= False)
-       
-     
+      
     # Atributos
     PLT_Cadencia_DST.title.text = 'CADENCIA'
     PLT_Cadencia_DST.sizing_mode = 'fixed'
@@ -399,25 +364,10 @@ def TabGraficosDistancia(df):
     PLT_Cadencia_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
  
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaCadencia = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSCadencia = CustomJS(code=CodigoJS, args=dict(l0=PLT_C_FC_DST, l1=PLT_C_Ritmo_DST, l2=PLT_C_Altitud_DST, l3=PLT_C_Temperatura_DST, l4=PLT_C_Pendiente_DST, l5=PLT_C_Desnivel_DST, l6=PLT_C_Zancada_DST, checkbox=BotonesGraficaCadencia))
+    BotonesGraficaCadencia.js_on_click(CodigoJSCadencia)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSCadencia = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaCadencia = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSCadencia, width= 100)
-    
-    CodigoJSCadencia.args = dict(l0=PLT_C_FC_DST, l1=PLT_C_Ritmo_DST, l2=PLT_C_Altitud_DST, l3=PLT_C_Temperatura_DST, l4=PLT_C_Pendiente_DST, l5=PLT_C_Desnivel_DST, l6=PLT_C_Zancada_DST, checkbox=BotonesGraficaCadencia)
- 
- 
 
     """
         TEMPERATURA AMBIENTE | DISTANCIA
@@ -459,27 +409,11 @@ def TabGraficosDistancia(df):
     PLT_Temperatura_DST.xaxis.ticker = SingleIntervalTicker(interval= 1000)
     PLT_Temperatura_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
     
-    
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaTMP = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO',  'ALTITUD', 'CADENCIA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSTemperatura = CustomJS(code=CodigoJS, args=dict(l0=PLT_TMP_FC_DST, l1=PLT_TMP_Ritmo_DST, l2=PLT_TMP_Altitud_DST, l3=PLT_TMP_Cadencia_DST, l4=PLT_TMP_Pendiente_DST, l5=PLT_TMP_Desnivel_DST, l6=PLT_TMP_Zancada_DST, checkbox=BotonesGraficaTMP))
+    BotonesGraficaTMP.js_on_click(CodigoJSTemperatura)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSTemperatura= CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaTMP = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO',  'ALTITUD', 'CADENCIA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSTemperatura, width= 100)
-    
-    CodigoJSTemperatura.args = dict(l0=PLT_TMP_FC_DST, l1=PLT_TMP_Ritmo_DST, l2=PLT_TMP_Altitud_DST, l3=PLT_TMP_Cadencia_DST, l4=PLT_TMP_Pendiente_DST, l5=PLT_TMP_Desnivel_DST, l6=PLT_TMP_Zancada_DST, checkbox=BotonesGraficaTMP)
-
-
     
     """
         PENDIENTE | DISTANCIA
@@ -521,25 +455,10 @@ def TabGraficosDistancia(df):
     PLT_Pendiente_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
             
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaPEN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSPendiente = CustomJS(code=CodigoJS, args=dict(l0=PLT_PEN_FC_DST, l1=PLT_PEN_Ritmo_DST, l2=PLT_PEN_Altitud_DST, l3=PLT_PEN_Cadencia_DST, l4=PLT_PEN_Temperatura_DST, l5=PLT_PEN_Desnivel_DST, l6=PLT_PEN_Zancada_DST, checkbox=BotonesGraficaPEN))
+    BotonesGraficaPEN.js_on_click(CodigoJSPendiente)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSPendiente = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaPEN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSPendiente, width= 100)
-    
-    CodigoJSPendiente.args = dict(l0=PLT_PEN_FC_DST, l1=PLT_PEN_Ritmo_DST, l2=PLT_PEN_Altitud_DST, l3=PLT_PEN_Cadencia_DST, l4=PLT_PEN_Temperatura_DST, l5=PLT_PEN_Desnivel_DST, l6=PLT_PEN_Zancada_DST, checkbox=BotonesGraficaPEN)
-
- 
 
     """
         DESNIVEL POSITIVO ACUMULADO | DISTANCIA
@@ -581,25 +500,10 @@ def TabGraficosDistancia(df):
     PLT_DesnivelPositivo_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaDPA = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSDesnivelPositivo = CustomJS(code=CodigoJS, args=dict(l0=PLT_DPA_FC_DST, l1=PLT_DPA_Ritmo_DST, l2=PLT_DPA_Altitud_DST, l3=PLT_DPA_Cadencia_DST, l4=PLT_DPA_Temperatura_DST, l5=PLT_DPA_Pendiente_DST, l6=PLT_DPA_Zancada_DST, checkbox=BotonesGraficaDPA))
+    BotonesGraficaDPA.js_on_click(CodigoJSDesnivelPositivo)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSDesnivelPositivo = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaDPA = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSDesnivelPositivo, width= 100)
-    
-    CodigoJSDesnivelPositivo.args = dict(l0=PLT_DPA_FC_DST, l1=PLT_DPA_Ritmo_DST, l2=PLT_DPA_Altitud_DST, l3=PLT_DPA_Cadencia_DST, l4=PLT_DPA_Temperatura_DST, l5=PLT_DPA_Pendiente_DST, l6=PLT_DPA_Zancada_DST, checkbox=BotonesGraficaDPA)
-        
-
 
     """
         LONGITUD DE ZANCADA | DISTANCIA
@@ -635,88 +539,39 @@ def TabGraficosDistancia(df):
     PLT_Zancada_DST.xaxis.major_label_overrides = FormateoEjes(dfBokeh.DistanciaAcumulada, 1000, 1000, 0, 0)
 
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaZAN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO'], active=[], width=100, height=380)    
+    CodigoJSZancada = CustomJS(code=CodigoJS, args=dict(l0=PLT_Z_FC_DST, l1=PLT_Z_Ritmo_DST, l2=PLT_Z_Altitud_DST, l3=PLT_Z_Cadencia_DST, l4=PLT_Z_Temperatura_DST, l5=PLT_Z_Pendiente_DST, l6=PLT_Z_Desnivel_DST, checkbox=BotonesGraficaZAN))
+    BotonesGraficaZAN.js_on_click(CodigoJSZancada)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
     
-    CodigoJSZancada = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaZAN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO'], active=[], callback=CodigoJSZancada, width= 100)
-    
-    CodigoJSZancada.args = dict(l0=PLT_Z_FC_DST, l1=PLT_Z_Ritmo_DST, l2=PLT_Z_Altitud_DST, l3=PLT_Z_Cadencia_DST, l4=PLT_Z_Temperatura_DST, l5=PLT_Z_Pendiente_DST, l6=PLT_Z_Desnivel_DST, checkbox=BotonesGraficaZAN)
- 
-
-    
-       
     """
         LAYOUT
     """
-    
-    GridBotonesFC = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaFC, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaFC = gridplot(
-            [PLT_FrecuenciaCardiaca_DST, GridBotonesFC],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
- 
-    GridBotonesVEL = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaVelocidad, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaVEL = gridplot(
-            [PLT_VelocidadCalculada_DST, GridBotonesVEL],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
-    
-    GridBotonesALT = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaALT, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaALT = gridplot(
-            [PLT_Altitud_DST, GridBotonesALT],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridBotonesCAD = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaCadencia, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaCAD = gridplot(
-            [PLT_Cadencia_DST, GridBotonesCAD],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
- 
-    GridBotonesTMP = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaTMP, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaTMP = gridplot(
-            [PLT_Temperatura_DST, GridBotonesTMP],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
+    GridBotonesFC = layout([Spacer(width=100, height=25), Column(BotonesGraficaFC, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaFC = gridplot([PLT_FrecuenciaCardiaca_DST, GridBotonesFC], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
 
-    GridBotonesPEN = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaPEN, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaPEN = gridplot(
-            [PLT_Pendiente_DST, GridBotonesPEN],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
+    GridBotonesVEL = layout([Spacer(width=100, height=25), Column(BotonesGraficaVelocidad, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaVEL = gridplot([PLT_VelocidadCalculada_DST, GridBotonesVEL], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+ 
+    GridBotonesALT = layout([Spacer(width=100, height=25), Column(BotonesGraficaALT, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaALT = gridplot([PLT_Altitud_DST, GridBotonesALT], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+    
+    GridBotonesCAD = layout([Spacer(width=100, height=25), Column(BotonesGraficaCadencia, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaCAD = gridplot([PLT_Cadencia_DST, GridBotonesCAD], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+    
+    GridBotonesTMP = layout([Spacer(width=100, height=25), Column(BotonesGraficaTMP, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaTMP = gridplot([PLT_Temperatura_DST, GridBotonesTMP], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+    
+    GridBotonesPEN = layout([Spacer(width=100, height=25), Column(BotonesGraficaPEN, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaPEN = gridplot([PLT_Pendiente_DST, GridBotonesPEN], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
 
-    GridBotonesDPA = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaDPA, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaDPA = gridplot(
-            [PLT_DesnivelPositivo_DST, GridBotonesDPA],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+    GridBotonesDPA = layout([Spacer(width=100, height=25), Column(BotonesGraficaDPA, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaDPA = gridplot([PLT_DesnivelPositivo_DST, GridBotonesDPA], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+
+    GridBotonesZAN = layout([Spacer(width=100, height=25), Column(BotonesGraficaZAN, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaZAN = gridplot([PLT_Zancada_DST, GridBotonesZAN], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
     
-    GridBotonesZAN = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaZAN, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaZAN = gridplot(
-            [PLT_Zancada_DST, GridBotonesZAN],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
-    
-    
+
     # Seleccion de las graficas relevantes a mostrar
     ListadoGraficas = []
     
@@ -737,8 +592,6 @@ def TabGraficosDistancia(df):
     if DeteccionVariables(df, 'LongitudZancada'):
         ListadoGraficas.append(GridGraficaZAN)
         
-    GraficasDistancia = layout(
-            ListadoGraficas,
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+    GraficasDistancia = layout(ListadoGraficas, sizing_mode='stretch_both')
 
     return GraficasDistancia

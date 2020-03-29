@@ -14,7 +14,7 @@ intervalos registrados por los sensores y valores por defecto en las pausas de l
 """
 # Importacion de las funciones necesarias
 from bokeh.layouts import gridplot, layout, widgetbox, Spacer
-from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumeralTickFormatter, DatetimeTickFormatter, CustomJS
+from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumeralTickFormatter, DatetimeTickFormatter, CustomJS, Column
 from bokeh.models.widgets import CheckboxGroup
 from bokeh.models.tickers import SingleIntervalTicker
 from bokeh.plotting import figure
@@ -61,7 +61,7 @@ def TabGraficosTiempoTotal(df):
     dfBokeh = df[['TiempoTotal', 'TiempoActividad', 'DistanciaAcumulada', 'Bloque', 'Latitud', 'Longitud', 'Altitud', 'AltitudCalculada', 'Velocidad_i', 'VelocidadCalculada', 'Ritmo', 'FrecuenciaCardiaca', 'FrecuenciaCardiacaCalculada', 'Cadencia', 'CadenciaCalculada', 'TemperaturaAmbiente', 'LongitudZancada', 'DesnivelPositivoAcumulado', 'DesnivelNegativoAcumulado', 'Pendiente']].copy()
     # ReIndexado del dataframe para generar datos durante todo el tiempo que dure la actividad
     dfBokeh['Hora'] = df.index
-    dfBokeh['DeltaTiempo'] = (dfBokeh['Hora']-dfBokeh['Hora'].shift()).fillna(0)
+    dfBokeh['DeltaTiempo'] = (dfBokeh['Hora']-dfBokeh['Hora'].shift()).fillna(pd.Timedelta(seconds=0))
     NuevoIndice = pd.date_range(start= dfBokeh.index.min(), end= dfBokeh.index.max(), freq= pd.DateOffset(seconds= dfBokeh['DeltaTiempo'].value_counts().idxmax().total_seconds()))
     dfBokeh = dfBokeh.reindex(NuevoIndice, fill_value= np.NaN) # Recalculo del tiempo total
     dfBokeh = dfBokeh.drop('Hora', 1)
@@ -186,7 +186,19 @@ def TabGraficosTiempoTotal(df):
     # Creacion de los ColumnDataSource de origen de Bokeh
     DatosBokeh = ColumnDataSource(dfBokeh) 
     DatosBokehAGG = ColumnDataSource(dfBokehAGG)
-   
+    
+    # Definicion del codigo JavaScrip que habilita la visualizacion de metricas auxiliares
+    CodigoJS = """
+    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    
+    l0.visible = indexOf.call(checkbox.active,0)>=0;
+    l1.visible = indexOf.call(checkbox.active,1)>=0;
+    l2.visible = indexOf.call(checkbox.active,2)>=0;
+    l3.visible = indexOf.call(checkbox.active,3)>=0;
+    l4.visible = indexOf.call(checkbox.active,4)>=0;
+    l5.visible = indexOf.call(checkbox.active,5)>=0;
+    l6.visible = indexOf.call(checkbox.active,6)>=0;
+    """
      
     """
         FRECUENCIA CARDIACA | TIEMPO TOTAL
@@ -229,23 +241,9 @@ def TabGraficosTiempoTotal(df):
     PLT_FrecuenciaCardiaca_TMT.yaxis.major_label_overrides = FormateoEjes(dfBokeh.FrecuenciaCardiacaCalculada, 10, 1)
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSFrecuenciaCardiaca = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaFC = CheckboxGroup(labels=['RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSFrecuenciaCardiaca, width= 100)
-    
-    CodigoJSFrecuenciaCardiaca.args = dict(l0=PLT_FC_Ritmo_TMT, l1=PLT_FC_Altitud_TMT, l2=PLT_FC_Cadencia_TMT, l3=PLT_FC_Temperatura_TMT, l4=PLT_FC_Pendiente_TMT, l5=PLT_FC_Desnivel_TMT, l6=PLT_FC_Zancada_TMT, checkbox=BotonesGraficaFC)
+    BotonesGraficaFC = CheckboxGroup(labels=['RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSFrecuenciaCardiaca = CustomJS(code=CodigoJS, args=dict(l0=PLT_FC_Ritmo_TMT, l1=PLT_FC_Altitud_TMT, l2=PLT_FC_Cadencia_TMT, l3=PLT_FC_Temperatura_TMT, l4=PLT_FC_Pendiente_TMT, l5=PLT_FC_Desnivel_TMT, l6=PLT_FC_Zancada_TMT, checkbox=BotonesGraficaFC))
+    BotonesGraficaFC.js_on_click(CodigoJSFrecuenciaCardiaca)
     
     
     """
@@ -287,24 +285,9 @@ def TabGraficosTiempoTotal(df):
     PLT_VelocidadCalculada_TMT.yaxis.major_label_overrides = {1: '16:40', 1.5: '16:06', 2: '8:20', 2.5: '6:40', 3: '5:33', 3.5: '4:45', 4: '4:10', 4.5: '3:42', 5: '3:20', 5.5: '3:01', 6: '2:46', 6.5: '2:34', 7: '2:22'}
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSVelocidad = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaVelocidad = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSVelocidad, width= 100)
-    
-    CodigoJSVelocidad.args = dict(l0=PLT_V_FrecuenciaCardiaca_TMT, l1=PLT_V_Altitud_TMT, l2=PLT_V_Cadencia_TMT, l3=PLT_V_Temperatura_TMT, l4=PLT_V_Pendiente_TMT, l5=PLT_V_Desnivel_TMT, l6=PLT_V_Zancada_TMT, checkbox=BotonesGraficaVelocidad)
- 
+    BotonesGraficaVelocidad = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSVelocidad = CustomJS(code=CodigoJS, args=dict(l0=PLT_V_FrecuenciaCardiaca_TMT, l1=PLT_V_Altitud_TMT, l2=PLT_V_Cadencia_TMT, l3=PLT_V_Temperatura_TMT, l4=PLT_V_Pendiente_TMT, l5=PLT_V_Desnivel_TMT, l6=PLT_V_Zancada_TMT, checkbox=BotonesGraficaVelocidad))
+    BotonesGraficaVelocidad.js_on_click(CodigoJSVelocidad)
 
 
     """
@@ -351,24 +334,10 @@ def TabGraficosTiempoTotal(df):
     PLT_Altitud_TMT.yaxis.major_label_overrides = FormateoEjes(dfBokeh.AltitudCalculada, 100, 1)
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSAltitud = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaALT = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSAltitud, width= 100)
-    
-    CodigoJSAltitud.args = dict(l0=PLT_ALT_FC_TMT, l1=PLT_ALT_Ritmo_TMT, l2=PLT_ALT_Cadencia_TMT, l3=PLT_ALT_Temperatura_TMT, l4=PLT_ALT_Pendiente_TMT, l5=PLT_ALT_Desnivel_TMT, l6=PLT_ALT_Zancada_TMT, checkbox=BotonesGraficaALT)
-     
+    BotonesGraficaALT = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSAltitud = CustomJS(code=CodigoJS, args=dict(l0=PLT_ALT_FC_TMT, l1=PLT_ALT_Ritmo_TMT, l2=PLT_ALT_Cadencia_TMT, l3=PLT_ALT_Temperatura_TMT, l4=PLT_ALT_Pendiente_TMT, l5=PLT_ALT_Desnivel_TMT, l6=PLT_ALT_Zancada_TMT, checkbox=BotonesGraficaALT))
+    BotonesGraficaALT.js_on_click(CodigoJSAltitud)
+
     
     """
         CADENCIA | TIEMPO TOTAL
@@ -404,24 +373,10 @@ def TabGraficosTiempoTotal(df):
     
    
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaCadencia = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSCadencia = CustomJS(code=CodigoJS, args=dict(l0=PLT_C_FC_TMT, l1=PLT_C_Ritmo_TMT, l2=PLT_C_Altitud_TMT, l3=PLT_C_Temperatura_TMT, l4=PLT_C_Pendiente_TMT, l5=PLT_C_Desnivel_TMT, l6=PLT_C_Zancada_TMT, checkbox=BotonesGraficaCadencia))
+    BotonesGraficaCadencia.js_on_click(CodigoJSCadencia)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSCadencia = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaCadencia = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSCadencia, width= 100)
-    
-    CodigoJSCadencia.args = dict(l0=PLT_C_FC_TMT, l1=PLT_C_Ritmo_TMT, l2=PLT_C_Altitud_TMT, l3=PLT_C_Temperatura_TMT, l4=PLT_C_Pendiente_TMT, l5=PLT_C_Desnivel_TMT, l6=PLT_C_Zancada_TMT, checkbox=BotonesGraficaCadencia)
- 
     
     """
         TEMPERATURA AMBIENTE | TIEMPO TOTAL
@@ -462,23 +417,9 @@ def TabGraficosTiempoTotal(df):
     PLT_Temperatura_TMT.yaxis.major_label_overrides = FormateoEjes(dfBokeh.TemperaturaAmbiente, 5, 1)
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSTemperatura= CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaTMP = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO',  'ALTITUD', 'CADENCIA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSTemperatura, width= 100)
-    
-    CodigoJSTemperatura.args = dict(l0=PLT_TMP_FC_TMT, l1=PLT_TMP_Ritmo_TMT, l2=PLT_TMP_Altitud_TMT, l3=PLT_TMP_Cadencia_TMT, l4=PLT_TMP_Pendiente_TMT, l5=PLT_TMP_Desnivel_TMT, l6=PLT_TMP_Zancada_TMT, checkbox=BotonesGraficaTMP)
+    BotonesGraficaTMP = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO',  'ALTITUD', 'CADENCIA', 'PENDIENTE', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSTemperatura = CustomJS(code=CodigoJS, args=dict(l0=PLT_TMP_FC_TMT, l1=PLT_TMP_Ritmo_TMT, l2=PLT_TMP_Altitud_TMT, l3=PLT_TMP_Cadencia_TMT, l4=PLT_TMP_Pendiente_TMT, l5=PLT_TMP_Desnivel_TMT, l6=PLT_TMP_Zancada_TMT, checkbox=BotonesGraficaTMP))
+    BotonesGraficaTMP.js_on_click(CodigoJSTemperatura)
 
     
     """
@@ -519,23 +460,9 @@ def TabGraficosTiempoTotal(df):
     PLT_Pendiente_TMT.yaxis.major_label_overrides = FormateoEjes(dfBokeh.Pendiente, 1, 1)
        
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSPendiente = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaPEN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSPendiente, width= 100)
-    
-    CodigoJSPendiente.args = dict(l0=PLT_PEN_FC_TMT, l1=PLT_PEN_Ritmo_TMT, l2=PLT_PEN_Altitud_TMT, l3=PLT_PEN_Cadencia_TMT, l4=PLT_PEN_Temperatura_TMT, l5=PLT_PEN_Desnivel_TMT, l6=PLT_PEN_Zancada_TMT, checkbox=BotonesGraficaPEN)
+    BotonesGraficaPEN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'DESNIVEL POSITIVO', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSPendiente = CustomJS(code=CodigoJS, args=dict(l0=PLT_PEN_FC_TMT, l1=PLT_PEN_Ritmo_TMT, l2=PLT_PEN_Altitud_TMT, l3=PLT_PEN_Cadencia_TMT, l4=PLT_PEN_Temperatura_TMT, l5=PLT_PEN_Desnivel_TMT, l6=PLT_PEN_Zancada_TMT, checkbox=BotonesGraficaPEN))
+    BotonesGraficaPEN.js_on_click(CodigoJSPendiente)
 
  
     """
@@ -576,24 +503,9 @@ def TabGraficosTiempoTotal(df):
     PLT_DesnivelPositivo_TMT.yaxis.major_label_overrides = FormateoEjes(dfBokeh.DesnivelPositivoAcumulado, 100, 1)
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
-    
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSDesnivelPositivo = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaDPA = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'LONGITUD ZANCADA'], active=[], callback=CodigoJSDesnivelPositivo, width= 100)
-    
-    CodigoJSDesnivelPositivo.args = dict(l0=PLT_DPA_FC_TMT, l1=PLT_DPA_Ritmo_TMT, l2=PLT_DPA_Altitud_TMT, l3=PLT_DPA_Cadencia_TMT, l4=PLT_DPA_Temperatura_TMT, l5=PLT_DPA_Pendiente_TMT, l6=PLT_DPA_Zancada_TMT, checkbox=BotonesGraficaDPA)
-       
+    BotonesGraficaDPA = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'LONGITUD ZANCADA'], active=[], width=100, height=380)    
+    CodigoJSDesnivelPositivo = CustomJS(code=CodigoJS, args=dict(l0=PLT_DPA_FC_TMT, l1=PLT_DPA_Ritmo_TMT, l2=PLT_DPA_Altitud_TMT, l3=PLT_DPA_Cadencia_TMT, l4=PLT_DPA_Temperatura_TMT, l5=PLT_DPA_Pendiente_TMT, l6=PLT_DPA_Zancada_TMT, checkbox=BotonesGraficaDPA))
+    BotonesGraficaDPA.js_on_click(CodigoJSDesnivelPositivo)   
 
 
     """
@@ -628,86 +540,38 @@ def TabGraficosTiempoTotal(df):
     PLT_Zancada_TMT.yaxis.minor_tick_line_color = None
     
     #Botones
-    CodigoJS = """
-    var indexOf = [].indexOf || function(item) { for (var i = 0, l = this.length; i < l; i++) { if (i in this && this[i] === item) return i; } return -1; };
+    BotonesGraficaZAN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO'], active=[], width=100, height=380)    
+    CodigoJSZancada = CustomJS(code=CodigoJS, args=dict(l0=PLT_Z_FC_TMT, l1=PLT_Z_Ritmo_TMT, l2=PLT_Z_Altitud_TMT, l3=PLT_Z_Cadencia_TMT, l4=PLT_Z_Temperatura_TMT, l5=PLT_Z_Pendiente_TMT, l6=PLT_Z_Desnivel_TMT, checkbox=BotonesGraficaZAN))
+    BotonesGraficaZAN.js_on_click(CodigoJSZancada)
     
-    l0.visible = indexOf.call(checkbox.active,0)>=0;
-    l1.visible = indexOf.call(checkbox.active,1)>=0;
-    l2.visible = indexOf.call(checkbox.active,2)>=0;
-    l3.visible = indexOf.call(checkbox.active,3)>=0;
-    l4.visible = indexOf.call(checkbox.active,4)>=0;
-    l5.visible = indexOf.call(checkbox.active,5)>=0;
-    l6.visible = indexOf.call(checkbox.active,6)>=0;
-    """
-    
-    CodigoJSZancada = CustomJS(code=CodigoJS, args={})
-    
-    BotonesGraficaZAN = CheckboxGroup(labels=['FRECUENCIA CARDIACA', 'RITMO', 'ALTITUD', 'CADENCIA', 'TEMPERATURA', 'PENDIENTE', 'DESNIVEL POSITIVO'], active=[], callback=CodigoJSZancada, width= 100)
-    
-    CodigoJSZancada.args = dict(l0=PLT_Z_FC_TMT, l1=PLT_Z_Ritmo_TMT, l2=PLT_Z_Altitud_TMT, l3=PLT_Z_Cadencia_TMT, l4=PLT_Z_Temperatura_TMT, l5=PLT_Z_Pendiente_TMT, l6=PLT_Z_Desnivel_TMT, checkbox=BotonesGraficaZAN)
- 
-
   
     """
         LAYOUT
     """
-    
-    GridBotonesFC = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaFC, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaFC = gridplot(
-            [PLT_FrecuenciaCardiaca_TMT, GridBotonesFC],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
- 
-    GridBotonesVEL = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaVelocidad, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaVEL = gridplot(
-            [PLT_VelocidadCalculada_TMT, GridBotonesVEL],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
-    
-    GridBotonesALT = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaALT, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaALT = gridplot(
-            [PLT_Altitud_TMT, GridBotonesALT],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridBotonesCAD = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaCadencia, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaCAD = gridplot(
-            [PLT_Cadencia_TMT, GridBotonesCAD],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
- 
-    GridBotonesTMP = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaTMP, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaTMP = gridplot(
-            [PLT_Temperatura_TMT, GridBotonesTMP],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
+    GridBotonesFC = layout([Spacer(width=100, height=25), Column(BotonesGraficaFC, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaFC = gridplot([PLT_FrecuenciaCardiaca_TMT, GridBotonesFC], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
 
-    GridBotonesPEN = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaPEN, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaPEN = gridplot(
-            [PLT_Pendiente_TMT, GridBotonesPEN],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
+    GridBotonesVEL = layout([Spacer(width=100, height=25), Column(BotonesGraficaVelocidad, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaVEL = gridplot([PLT_VelocidadCalculada_TMT, GridBotonesVEL], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+ 
+    GridBotonesALT = layout([Spacer(width=100, height=25), Column(BotonesGraficaALT, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaALT = gridplot([PLT_Altitud_TMT, GridBotonesALT], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+    
+    GridBotonesCAD = layout([Spacer(width=100, height=25), Column(BotonesGraficaCadencia, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaCAD = gridplot([PLT_Cadencia_TMT, GridBotonesCAD], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+    
+    GridBotonesTMP = layout([Spacer(width=100, height=25), Column(BotonesGraficaTMP, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaTMP = gridplot([PLT_Temperatura_TMT, GridBotonesTMP], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+    
+    GridBotonesPEN = layout([Spacer(width=100, height=25), Column(BotonesGraficaPEN, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaPEN = gridplot([PLT_Pendiente_TMT, GridBotonesPEN], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
 
-    GridBotonesDPA = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaDPA, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaDPA = gridplot(
-            [PLT_DesnivelPositivo_TMT, GridBotonesDPA],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridBotonesZAN = layout(
-            [Spacer(height= 20), widgetbox(BotonesGraficaZAN, width= 100)],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    GridGraficaZAN = gridplot(
-            [PLT_Zancada_TMT, GridBotonesZAN],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None)) 
-    
+    GridBotonesDPA = layout([Spacer(width=100, height=25), Column(BotonesGraficaDPA, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaDPA = gridplot([PLT_DesnivelPositivo_TMT, GridBotonesDPA], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+
+    GridBotonesZAN = layout([Spacer(width=100, height=25), Column(BotonesGraficaZAN, width=100, height=375)], sizing_mode='fixed', width=100, height=400)
+    GridGraficaZAN = gridplot([PLT_Zancada_TMT, GridBotonesZAN], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1100, plot_height=400)
+
     
     # Seleccion de las graficas relevantes a mostrar
     ListadoGraficas = []
@@ -729,8 +593,6 @@ def TabGraficosTiempoTotal(df):
     if DeteccionVariables(df, 'LongitudZancada'):
         ListadoGraficas.append(GridGraficaZAN)
         
-    GraficasTiempoTotal = layout(
-            ListadoGraficas,
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+    GraficasTiempoTotal = layout(ListadoGraficas, sizing_mode='stretch_both')
 
     return GraficasTiempoTotal

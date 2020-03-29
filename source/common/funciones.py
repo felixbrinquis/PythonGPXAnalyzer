@@ -338,7 +338,7 @@ def HitosPausas(df):
     df['LatitudAnterior'] = df['Latitud'].shift().fillna(df['Latitud'])
     df['LongitudAnterior'] = df['Longitud'].shift().fillna(df['Longitud'])
     df['HoraMuestra'] = df.index
-    df['DeltaTiempo'] = (df['HoraMuestra']-df['HoraMuestra'].shift()).fillna(0)
+    df['DeltaTiempo'] = (df['HoraMuestra']-df['HoraMuestra'].shift()).fillna(pd.Timedelta(seconds=0))
     
     FrecuenciaMuestreo = df['DeltaTiempo'].value_counts().idxmax().total_seconds()
     
@@ -459,7 +459,7 @@ def TablaZonasCardiacas(FCMax, FCRep, df):
     # Creacion de datos auxilares
     FrecuenciaMuestreo = df['DeltaTiempo'].value_counts().idxmax().total_seconds()
     df['HoraMuestra'] = df.index
-    df['DeltaTiempo'] = (df['HoraMuestra']-df['HoraMuestra'].shift()).fillna(0)
+    df['DeltaTiempo'] = (df['HoraMuestra']-df['HoraMuestra'].shift()).fillna(pd.Timedelta(seconds=0))
 
     """
         Definicion de 5 zonas cardiacas y calculo de %en cada zona

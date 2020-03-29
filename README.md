@@ -2,20 +2,17 @@
 This project was created as a set of Python scripts with the purpose of analyze my own running activities from different points of view.
 
 # Libraries required to make this project work:
-1. bokeh
-2. datetime
-3. dateutil
-4. geopy
-5. glob
-6. lxml
-7. math
-8. numpy
-9. os
-10. pandas
-11. pytz
-12. scipy
-13. sys
-14. timezonefinder
+1. bokeh 2.0.0
+2. datetime 4.3
+3. dateutil 2.8.1
+4. geopy 1.21.0
+5. glob 0.7
+6. lxml 4.5.0
+7. numpy 1.18.2
+8. pandas 1.0.3
+9. pytz 2019.3
+10. scipy 1.4.1
+11. timezonefinder 4.2.0
 
 # How to launch the process:
 1. The program that works as a master script is \source\main\LecturaDirectorio.py

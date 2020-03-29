@@ -32,7 +32,7 @@ def CalculosDataframe(df):
     df['LatitudAnterior'] = df['Latitud'].shift().fillna(df['Latitud'])
     df['LongitudAnterior'] = df['Longitud'].shift().fillna(df['Longitud'])
     df['HoraMuestra'] = df.index
-    df['DeltaTiempo'] = (df['HoraMuestra']-df['HoraMuestra'].shift()).fillna(0)
+    df['DeltaTiempo'] = (df['HoraMuestra']-df['HoraMuestra'].shift()).fillna(pd.Timedelta(seconds=0))
     
     # Seleccion de la frecuencia de muestreo de los datos GPS
     FrecuenciaMuestreo = df['DeltaTiempo'].value_counts().idxmax().total_seconds()

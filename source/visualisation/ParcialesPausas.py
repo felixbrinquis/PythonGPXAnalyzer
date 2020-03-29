@@ -14,7 +14,7 @@ en la actividad. Tambien pueden superponerse otras metricas de manera opcional.
 """
 # Importacion de las funciones necesarias
 from bokeh.layouts import gridplot, layout, widgetbox, Spacer
-from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumberFormatter, StringFormatter, CheckboxButtonGroup, NumeralTickFormatter, CustomJS
+from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumberFormatter, StringFormatter, CheckboxButtonGroup, NumeralTickFormatter, CustomJS, Column
 from bokeh.models.widgets import DataTable, TableColumn
 from bokeh.models.tickers import SingleIntervalTicker
 from bokeh.plotting import figure
@@ -134,27 +134,16 @@ def TabParcialesPausas(df):
     l2.visible = indexOf.call(checkbox.active,2)>=0;
     """
     
-    CodigoJSTramosPausas = CustomJS(code=CodigoJS, args={})
-    
-    BotonesTramosPausas = CheckboxButtonGroup(labels=["Altitud", "Frecuencia Cardiaca", "Cadencia"], active=[], callback=CodigoJSTramosPausas, width= 300)
-    
-    CodigoJSTramosPausas.args = dict(l0=PLT_TramosPausas_Altitud, l1=PLT_TramosPausas_FC, l2=PLT_TramosPausas_Cadencia, checkbox=BotonesTramosPausas)
-  
-    
+    BotonesTramosPausas = CheckboxButtonGroup(labels=["Altitud", "Frecuencia Cardiaca", "Cadencia"], active=[], width=300, height=30)
+    CodigoJSTramosPausas = CustomJS(code=CodigoJS, args=dict(l0=PLT_TramosPausas_Altitud, l1=PLT_TramosPausas_FC, l2=PLT_TramosPausas_Cadencia, checkbox=BotonesTramosPausas))
+    BotonesTramosPausas.js_on_click(CodigoJSTramosPausas)
+ 
 
     """
         LAYOUT
     """
-    GridGraficaTramosPausas = layout(
-            [PLT_TramosPausas, [Spacer(width= 300), widgetbox(BotonesTramosPausas, width= 300)]],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridTablaTramosPausas = layout(
-            [Spacer(height= 20), PLT_TablaPausas],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridAnalisisPausas = gridplot(
-            [GridGraficaTramosPausas, GridTablaTramosPausas],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
+    GridGraficaTramosPausas = layout([Column(PLT_TramosPausas, width=900, height=500), [Spacer(width=300, height=30), Column(BotonesTramosPausas, width=300, height=30), Spacer(width=300, height=30)]], sizing_mode='stretch_width', width=900, height=570)
+    GridTablaTramosPausas = layout([Spacer(width=360, height= 25), Column(PLT_TablaPausas, width=360, height=550)], sizing_mode='stretch_width', width=360, height=570)   
+    GridAnalisisPausas = gridplot([GridGraficaTramosPausas, GridTablaTramosPausas], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1000, plot_height=570)
+
     return GridAnalisisPausas

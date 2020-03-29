@@ -14,7 +14,7 @@ metricas de manera opcional.
 """
 # Importacion de las funciones necesarias
 from bokeh.layouts import gridplot, layout, widgetbox, Spacer
-from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumberFormatter, StringFormatter, CheckboxButtonGroup, NumeralTickFormatter, CustomJS
+from bokeh.models import ColumnDataSource, Span, HoverTool, LinearColorMapper, NumberFormatter, StringFormatter, CheckboxButtonGroup, NumeralTickFormatter, CustomJS, Column
 from bokeh.models.widgets import DataTable, TableColumn
 from bokeh.models.tickers import SingleIntervalTicker
 from bokeh.plotting import figure
@@ -133,27 +133,16 @@ def TabParcialesKilometricos(df):
     l1.visible = indexOf.call(checkbox.active,1)>=0;
     l2.visible = indexOf.call(checkbox.active,2)>=0;
     """
-    
-    CodigoJSTramosKm = CustomJS(code=CodigoJS, args={})
-    
-    BotonesTramosKm = CheckboxButtonGroup(labels=["Altitud", "Frecuencia Cardiaca", "Cadencia"], active=[], callback=CodigoJSTramosKm, width= 300)
-    
-    CodigoJSTramosKm.args = dict(l0=PLT_TramosKM_Altitud, l1=PLT_TramosKM_FC, l2=PLT_TramosKM_Cadencia, checkbox=BotonesTramosKm)
+    BotonesTramosKm = CheckboxButtonGroup(labels=["Altitud", "Frecuencia Cardiaca", "Cadencia"], active=[], width=300, height=30)
+    CodigoJSTramosKm = CustomJS(code=CodigoJS, args=dict(l0=PLT_TramosKM_Altitud, l1=PLT_TramosKM_FC, l2=PLT_TramosKM_Cadencia, checkbox=BotonesTramosKm))
+    BotonesTramosKm.js_on_click(CodigoJSTramosKm)
     
     
     """
         LAYOUT
     """
-    GridGraficaTramosKm = layout(
-            [PLT_TramosKm, [Spacer(width= 300), widgetbox(BotonesTramosKm, width= 300)]],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridTablaTramosKm = layout(
-            [Spacer(height= 20), PLT_TablaKm],
-            ncols= 1, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
-    
-    GridAnalisisKm = gridplot(
-            [GridGraficaTramosKm, GridTablaTramosKm],
-            ncols= 2, merge_tools= True, sizing_mode='fixed', toolbar_options=dict(logo=None))
+    GridGraficaTramosKm = layout([Column(PLT_TramosKm, width=900, height=500), [Spacer(width=300, height=30), Column(BotonesTramosKm, width=300, height=30), Spacer(width=300, height=30)]], sizing_mode='stretch_width', width=900, height=570)
+    GridTablaTramosKm = layout([Spacer(width=360, height= 25), Column(PLT_TablaKm, width=360, height=550)], sizing_mode='stretch_width', width=360, height=570)   
+    GridAnalisisKm = gridplot([GridGraficaTramosKm, GridTablaTramosKm], ncols= 2, sizing_mode='stretch_width', toolbar_location=None, plot_width=1000, plot_height=570)
     
     return GridAnalisisKm
