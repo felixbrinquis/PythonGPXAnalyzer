@@ -13,6 +13,7 @@ This project was created as a set of Python scripts with the purpose of analyze 
 9. pytz 2019.3
 10. scipy 1.4.1
 11. timezonefinder 4.2.0
+12. reverse_geocoder 1.5.1
 
 # How to launch the process:
 1. The program that works as a master script is \source\main\LecturaDirectorio.py

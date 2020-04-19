@@ -13,6 +13,7 @@ from lxml.etree import parse as lxml_parse
 from dateutil.parser import parse as dateutil_parse
 import timezonefinder, pytz
 import pandas as pd
+import numpy as np
 
 def LecturaGPX(ficheroGPX):
     gpx = lxml_parse(ficheroGPX)
@@ -94,5 +95,13 @@ def LecturaGPX(ficheroGPX):
         'TemperaturaAmbiente':TemperaturaAmbiente,
         'FrecuenciaCardiaca':FrecuenciaCardiaca,
         'CadenciaBraceo':CadenciaBraceo}).set_index('Hora').sort_index()
+    
+    # Si algun valor leido no contiene valores se elimina
+    for campo in DataFrame.columns:
+        if (DataFrame[campo] == 0).all():
+            DataFrame = DataFrame.drop([campo], axis=1)
+
+    # Se eliminan duplicados en el indice
+    DataFrame = DataFrame[~DataFrame.index.duplicated()]
     
     return Name, Type, DataFrame

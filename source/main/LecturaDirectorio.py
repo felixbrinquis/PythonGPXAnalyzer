@@ -36,12 +36,16 @@ Informes = 'output'
 BBDD = 'library'
 
 LecturaIndividual = 'S'
-fichero = '10X(200+300) R45R90.gpx'
+fichero = 'IX_Maraton_Ciudad_de_Zaragoza.gpx'
 
 
 # Comprobacion de la existencia de la estructura de directorios definida
 os.chdir(os.path.join(DirectorioBase))
-from source.common.funciones import CreacionDirectoriosProyecto
+
+from source.common.Funciones_Generales import ConversorCoordenadasMercator, FormateoTiempos, FormulaKarvonen, Reescalado, LecturaBBDDActividades, EscrituraBBDDActividades, GeneracionCodigoJS, CreacionDirectoriosProyecto
+from source.common.Funciones_DataFrame import CalculosVectoresAgregados, HitosKilometricos, HitosPausas, TablaParcialesKilometricos, TablaParcialesPausas, TablaZonasCardiacas, IdentificacionTipoActividad, LecturaBBDDActividades, AnalisisActividadActual, DeteccionVariables
+from source.common.Funciones_CulumnDataSource import FormateoEjes, CalculoOffsetAltitud, LimiteEjeY, ParametrosVariables
+
 CreacionDirectoriosProyecto(DirectorioBase)
 
 # Selecion de lectura masiva o individual de ficheros
@@ -64,16 +68,21 @@ else:
 
 os.chdir(DirectorioBase)
 from source.main.LecturaGPX import LecturaGPX
-from source.common.funciones import LecturaBBDDActividades, AnalisisActividadActual, EscrituraBBDDActividades
+from source.main.LecturaTCX import LecturaTCX
 from source.main.CalculosFuncion import CalculosDataframe
 from source.main.CreacionHTML import CreacionHTML
 
 for fichero in FicherosCarga:
     NombreFichero = fichero.rsplit('.', 1)[0].rsplit('\\', 1)[len(fichero.rsplit('.', 1)[0].rsplit('\\', 1))-1]
 
-    # Lectura del fichero GPX
-    NombreActividad, TipoActividad, df = LecturaGPX(os.path.join(DirectorioBase, Actividades, fichero))
-    
+    # Lectura del fichero de origen
+    if fichero.rsplit('.', 1)[1].upper() == 'GPX':
+        NombreActividad, TipoActividad, df = LecturaGPX(os.path.join(DirectorioBase, Actividades, fichero))
+    elif fichero.rsplit('.', 1)[1].upper() == 'TCX':
+        NombreActividad, TipoActividad, df = LecturaTCX(os.path.join(DirectorioBase, Actividades, fichero))
+    else:
+        exit('El formato '+fichero.rsplit('.', 1)[1].upper()+' no esta entre los soportados')
+        
     # Calculos en el DataFrame
     df = CalculosDataframe(df)
 
@@ -84,5 +93,5 @@ for fichero in FicherosCarga:
     DataFrameBBDDActividades = LecturaBBDDActividades(DirectorioBase, BBDD)
     DataFrameActividadActual = AnalisisActividadActual(fichero, NombreActividad, TipoActividad, df)
     EscrituraBBDDActividades(DirectorioBase, BBDD, DataFrameActividadActual, DataFrameBBDDActividades)
-    os.replace(os.path.join(DirectorioBase, Actividades, fichero), os.path.join(DirectorioBase, Actividades, 'processed', fichero))
+    #os.replace(os.path.join(DirectorioBase, Actividades, fichero), os.path.join(DirectorioBase, Actividades, 'processed', fichero))
     
